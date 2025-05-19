@@ -7,11 +7,20 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
     @Published var didFinishLoading = false
     @Published var hasError = false
     var url: URL
+    var webView: WKWebView?
     private var hasAttemptedCookieAccept = false
     
     init(url: URL) {
         self.url = url
         super.init()
+    }
+
+    func setURL(_ newURL: URL) {
+        url = newURL
+        if let webView = webView {
+            let request = URLRequest(url: newURL, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
+            webView.load(request)
+        }
     }
     
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -21,11 +30,12 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         isLoading = false
         didFinishLoading = true
-        
+
         if !hasAttemptedCookieAccept {
             hasAttemptedCookieAccept = true
             acceptCookies(webView: webView)
         }
+        unmuteVideo(webView: webView)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -55,6 +65,19 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
         
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
+
+    private func unmuteVideo(webView: WKWebView) {
+        let script = """
+        (function() {
+            var vid = document.querySelector('video');
+            if (vid) {
+                vid.muted = false;
+                vid.play();
+            }
+        })();
+        """
+        webView.evaluateJavaScript(script, completionHandler: nil)
+    }
 }
 
 struct WebView: UIViewRepresentable {
@@ -65,24 +88,32 @@ struct WebView: UIViewRepresentable {
     }
     
     func makeUIView(context: Context) -> WKWebView {
+        if let existing = coordinator.webView {
+            return existing
+        }
+
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
-        
+
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = coordinator
         webView.isUserInteractionEnabled = true
         webView.allowsLinkPreview = false
         webView.scrollView.bounces = false
-        
+
         let request = URLRequest(url: coordinator.url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
         webView.load(request)
-        
+
+        coordinator.webView = webView
         return webView
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // Don't reload the webview when the view updates to prevent flickering
+        if webView.url != coordinator.url {
+            let request = URLRequest(url: coordinator.url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
+            webView.load(request)
+        }
     }
 }
 
@@ -96,6 +127,7 @@ struct WebViewContainer: View {
         self.url = url
         if let coord = coordinator {
             self._coordinator = StateObject(wrappedValue: coord)
+            coord.setURL(url)
         } else {
             self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
         }
