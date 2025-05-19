@@ -75,7 +75,7 @@ class JerryShowViewModel: ObservableObject {
             logger.info("🎸 Loaded \(showFiles.count) show files")
             
             // Combine the data
-            shows = masterShows.map { masterShow in
+            self.shows = masterShows.map { masterShow in
                 if let showFile = showFiles[masterShow.id] {
                     // Create audio files array from the files data
                     let audioFiles = showFile.files.audio.map { filename in
@@ -105,9 +105,9 @@ class JerryShowViewModel: ObservableObject {
                 }
             }
             
-            let showsWithAudio = shows.filter { $0.audioFiles?.isEmpty == false }
+            let showsWithAudio = self.shows.filter { $0.audioFiles?.isEmpty == false }
             logger.info("🎸 Successfully combined data:")
-            logger.info("  - Total shows: \(shows.count)")
+            logger.info("  - Total shows: \(self.shows.count)")
             logger.info("  - Shows with audio: \(showsWithAudio.count)")
             
         } catch {
