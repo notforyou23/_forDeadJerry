@@ -17,7 +17,7 @@ class DatabaseManager {
             logger.info("Found show_categories.json in bundle")
             let data = try Data(contentsOf: categoriesURL)
             showCategories = try ShowCategoriesModel(data: data)
-            logger.info("Loaded show categories: \(showCategories?.categories.byYear.count ?? 0) years")
+            logger.info("Loaded show categories: \(self.showCategories?.categories.byYear.count ?? 0) years")
         } else {
             // Try loading from the project directory
             let projectPath = Bundle.main.bundlePath
@@ -33,7 +33,7 @@ class DatabaseManager {
             logger.info("Found enriched_shows.json in bundle")
             let data = try Data(contentsOf: enrichedURL)
             enrichedShows = try JSONDecoder().decode(EnrichedShowsData.self, from: data)
-            logger.info("Loaded enriched shows: \(enrichedShows?.bestShows.count ?? 0) shows")
+            logger.info("Loaded enriched shows: \(self.enrichedShows?.bestShows.count ?? 0) shows")
         } else {
             // Try loading from the project directory
             let projectPath = Bundle.main.bundlePath
