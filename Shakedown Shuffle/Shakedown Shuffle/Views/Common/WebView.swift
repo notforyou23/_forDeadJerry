@@ -7,6 +7,8 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
     @Published var didFinishLoading = false
     @Published var hasError = false
     var url: URL
+    /// Persist the web view so playback continues when navigating away
+    var webView: WKWebView?
     private var hasAttemptedCookieAccept = false
     
     init(url: URL) {
@@ -65,19 +67,24 @@ struct WebView: UIViewRepresentable {
     }
     
     func makeUIView(context: Context) -> WKWebView {
+        if let existing = coordinator.webView {
+            return existing
+        }
+
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
-        
+
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        coordinator.webView = webView
         webView.navigationDelegate = coordinator
         webView.isUserInteractionEnabled = true
         webView.allowsLinkPreview = false
         webView.scrollView.bounces = false
-        
+
         let request = URLRequest(url: coordinator.url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
         webView.load(request)
-        
+
         return webView
     }
     
@@ -91,10 +98,14 @@ struct WebViewContainer: View {
     @StateObject private var coordinator: WebViewCoordinator
     @Environment(\.dismiss) private var dismiss
     @State private var timeoutTimerActive = true
-    
-    init(url: URL) {
+
+    init(url: URL, coordinator: WebViewCoordinator? = nil) {
         self.url = url
-        self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
+        if let coord = coordinator {
+            self._coordinator = StateObject(wrappedValue: coord)
+        } else {
+            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
+        }
     }
     
     // Function to open URL in Safari
