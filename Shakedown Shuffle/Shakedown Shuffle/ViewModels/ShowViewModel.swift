@@ -83,7 +83,7 @@ class ShowViewModel: ObservableObject {
         currentShow = show
         currentDate = show.identifier
         isFavorited = historyManager.isFavorite(show)
-        logger.info("Set show \(show.identifier), favorite status: \(isFavorited)")
+        logger.info("Set show \(show.identifier), favorite status: \(self.isFavorited)")
         
         Task {
             do {
@@ -110,7 +110,7 @@ class ShowViewModel: ObservableObject {
         currentShow = show
         currentDate = show.identifier
         isFavorited = historyManager.isFavorite(show)
-        logger.info("Set show \(show.identifier) without auto-play, favorite status: \(isFavorited)")
+        logger.info("Set show \(show.identifier) without auto-play, favorite status: \(self.isFavorited)")
         
         Task {
             do {
