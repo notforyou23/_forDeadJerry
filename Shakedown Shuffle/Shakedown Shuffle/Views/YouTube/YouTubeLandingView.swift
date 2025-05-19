@@ -24,12 +24,19 @@ struct YouTubeLandingView: View {
             } else {
                 ForEach(filteredShows) { show in
                     NavigationLink(destination: YouTubePlayerView(show: show)) {
-                        VStack(alignment: .leading) {
-                            Text("\(show.date) - \(show.venue)")
-                                .font(.headline)
-                            Text(show.location)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("\(show.date) - \(show.venue)")
+                                    .font(.headline)
+                                Text(show.location)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if viewModel.favoriteShows.contains(where: { $0.id == show.id }) {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                            }
                         }
                     }
                 }
