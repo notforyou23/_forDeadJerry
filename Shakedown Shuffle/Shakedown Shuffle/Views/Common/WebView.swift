@@ -20,7 +20,9 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
 
     func setURL(_ newURL: URL, fallback: URL? = nil) {
         url = newURL
-        if let fb = fallback { fallbackURL = fb }
+        if let fallback = fallback {
+            fallbackURL = fallback
+        }
         if let webView = webView {
             let request = URLRequest(url: newURL, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
             webView.load(request)
@@ -58,7 +60,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
     private func acceptCookies(webView: WKWebView) {
         let script = """
         (function() {
-            // Try to find and click cookie banner buttons
             const cookieButtons = document.querySelectorAll('button, a');
             for (let btn of cookieButtons) {
                 const text = btn.textContent || '';
@@ -69,7 +70,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
             }
         })();
         """
-        
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
 
@@ -145,9 +145,6 @@ struct WebView: UIViewRepresentable {
             let request = URLRequest(url: coordinator.url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
             webView.load(request)
         }
-        if coordinator.fallbackURL != fallbackURL {
-            coordinator.fallbackURL = fallbackURL
-        }
     }
 }
 
@@ -169,7 +166,6 @@ struct WebViewContainer: View {
         }
     }
     
-    // Function to open URL in Safari
     private func openInSafari() {
         let target = coordinator.fallbackURL ?? coordinator.url
         UIApplication.shared.open(target)
@@ -177,12 +173,10 @@ struct WebViewContainer: View {
     
     var body: some View {
         ZStack {
-            // WebView with no unnecessary updates
             WebView(coordinator: coordinator)
                 .ignoresSafeArea()
                 .disabled(coordinator.isLoading && !timeoutTimerActive)
             
-            // Loading overlay only shown during initial load and timeout hasn't expired
             if coordinator.isLoading && timeoutTimerActive {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
@@ -197,13 +191,10 @@ struct WebViewContainer: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack {
-                    // Open in Safari button
                     Button(action: openInSafari) {
                         Image(systemName: "safari")
                             .foregroundColor(.blue)
                     }
-                    
-                    // Done button
                     Button("Done") {
                         dismiss()
                     }
@@ -211,10 +202,9 @@ struct WebViewContainer: View {
             }
         }
         .onAppear {
-            // Force dismiss the loading overlay after a timeout to ensure interaction works
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                 timeoutTimerActive = false
             }
         }
     }
-} 
+}

@@ -7,7 +7,7 @@ class YouTubeShowViewModel: ObservableObject {
 
     private let favoriteShowsKey = "youtubeFavoriteShows"
 
-struct YouTubeShow: Identifiable, Codable {
+    struct YouTubeShow: Identifiable, Codable {
         let id: String
         let date: String
         let venue: String
@@ -36,16 +36,14 @@ struct YouTubeShow: Identifiable, Codable {
             return URL(string: urlString)
         }
 
-        /// Standard watch page URL used as a fallback when embedding fails
+        /// Standard watch URL used as a fallback when embedding fails.
         var watchURL: URL? {
             if let id = Self.extractVideoID(from: urlString) {
                 var components = URLComponents()
                 components.scheme = "https"
                 components.host = "www.youtube.com"
                 components.path = "/watch"
-                components.queryItems = [
-                    URLQueryItem(name: "v", value: id)
-                ]
+                components.queryItems = [URLQueryItem(name: "v", value: id)]
                 return components.url
             }
             return URL(string: urlString)
@@ -53,7 +51,6 @@ struct YouTubeShow: Identifiable, Codable {
 
         /// Attempt to extract a YouTube video ID from a variety of URL formats.
         private static func extractVideoID(from link: String) -> String? {
-            // Trim whitespace/newlines and create URL
             let trimmed = link.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: trimmed) else { return nil }
 
@@ -94,7 +91,6 @@ struct YouTubeShow: Identifiable, Codable {
             return nil
         }
     }
-
 
     struct ShowData: Codable {
         let id: String
