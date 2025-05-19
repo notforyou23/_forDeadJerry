@@ -11,10 +11,10 @@ class YouTubeShowViewModel: ObservableObject {
         let venue: String
         let location: String
         let name: String
-        let videoID: String
+        let urlString: String
 
         var youtubeURL: URL? {
-            URL(string: "https://www.youtube.com/embed/\(videoID)?playsinline=1")
+            URL(string: urlString)
         }
     }
 
@@ -30,6 +30,7 @@ class YouTubeShowViewModel: ObservableObject {
     struct DownloadInfo: Codable {
         let video_id: String?
         let source: String?
+        let url: String?
     }
 
     @Published private(set) var shows: [YouTubeShow] = []
@@ -37,6 +38,7 @@ class YouTubeShowViewModel: ObservableObject {
     @Published private(set) var error: Error?
     @Published var currentShow: YouTubeShow?
     @Published var isPlaying = false
+    @Published var coordinator: WebViewCoordinator?
 
     private init() {}
 
@@ -50,8 +52,14 @@ class YouTubeShowViewModel: ObservableObject {
             let data = try Data(contentsOf: url)
             let raw = try JSONDecoder().decode([ShowData].self, from: data)
             shows = raw.compactMap { item in
-                guard let vid = item.download_info?.first(where: { $0.source == "youtube" })?.video_id else { return nil }
-                return YouTubeShow(id: item.id, date: item.date, venue: item.venue, location: item.location, name: item.name.isEmpty ? "Jerry Garcia" : item.name, videoID: vid)
+                guard let info = item.download_info?.first(where: { $0.source == "youtube" }),
+                      let link = info.url else { return nil }
+                return YouTubeShow(id: item.id,
+                                   date: item.date,
+                                   venue: item.venue,
+                                   location: item.location,
+                                   name: item.name.isEmpty ? "Jerry Garcia" : item.name,
+                                   urlString: link)
             }
         } catch {
             self.error = error
@@ -61,6 +69,13 @@ class YouTubeShowViewModel: ObservableObject {
 
     func play(show: YouTubeShow) {
         currentShow = show
+        if let url = show.youtubeURL {
+            if coordinator?.url != url {
+                coordinator = WebViewCoordinator(url: url)
+            }
+        } else {
+            coordinator = nil
+        }
         isPlaying = true
         PlayerCoordinator.shared.setActivePlayer(.youtube)
     }

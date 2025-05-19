@@ -7,7 +7,7 @@ struct YouTubePlayerView: View {
     var body: some View {
         VStack {
             if let url = show.youtubeURL {
-                WebViewContainer(url: url)
+                WebViewContainer(url: url, coordinator: viewModel.coordinator)
                     .frame(height: 300)
             } else {
                 Text("Invalid video URL")
@@ -28,14 +28,14 @@ struct YouTubePlayerView: View {
             viewModel.play(show: show)
         }
         .onDisappear {
-            viewModel.stopPlayback()
+            // Keep playback running when navigating away
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        let demo = YouTubeShowViewModel.YouTubeShow(id: "1", date: "1/1/2000", venue: "Venue", location: "City, ST", name: "Demo", videoID: "dQw4w9WgXcQ")
+        let demo = YouTubeShowViewModel.YouTubeShow(id: "1", date: "1/1/2000", venue: "Venue", location: "City, ST", name: "Demo", urlString: "https://youtube.com/watch?v=dQw4w9WgXcQ")
         YouTubePlayerView(show: demo)
     }
 }

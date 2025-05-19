@@ -91,10 +91,14 @@ struct WebViewContainer: View {
     @StateObject private var coordinator: WebViewCoordinator
     @Environment(\.dismiss) private var dismiss
     @State private var timeoutTimerActive = true
-    
-    init(url: URL) {
+
+    init(url: URL, coordinator: WebViewCoordinator? = nil) {
         self.url = url
-        self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
+        if let coord = coordinator {
+            self._coordinator = StateObject(wrappedValue: coord)
+        } else {
+            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
+        }
     }
     
     // Function to open URL in Safari
