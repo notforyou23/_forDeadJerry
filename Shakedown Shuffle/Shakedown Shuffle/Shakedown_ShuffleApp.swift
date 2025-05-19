@@ -18,6 +18,8 @@ struct Shakedown_ShuffleApp: App {
                 } else {
                     LandingView()
                 }
+                // Floating YouTube mini player overlay
+                FloatingYouTubePlayerView()
             }
             .onAppear {
                 // Simulate loading time - in real app this would be actual data loading
