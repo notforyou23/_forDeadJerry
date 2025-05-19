@@ -18,6 +18,36 @@
             endingLineNumber = "43"
             landmarkName = "init()"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "ADDD5A8F-9DBE-49EC-A452-75BF637D1EAB - c29f848553b383f6"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Shakedown_Shuffle.UnifiedAudioService.__allocating_init() -&gt; Shakedown_Shuffle.UnifiedAudioService"
+                  moduleName = "Shakedown Shuffle.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jtr/Documents/GitHub/_forDeadJerry/Shakedown%20Shuffle/Shakedown%20Shuffle/Services/UnifiedAudioService.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "0"
+                  endingLineNumber = "0">
+               </Location>
+               <Location
+                  uuid = "ADDD5A8F-9DBE-49EC-A452-75BF637D1EAB - d574c68f1822140a"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Shakedown_Shuffle.UnifiedAudioService.() -&gt; Shakedown_Shuffle.UnifiedAudioService.init() -&gt; Shakedown_Shuffle.UnifiedAudioService"
+                  moduleName = "Shakedown Shuffle.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jtr/Documents/GitHub/_forDeadJerry/Shakedown%20Shuffle/Shakedown%20Shuffle/Services/UnifiedAudioService.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "29"
+                  endingLineNumber = "29">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

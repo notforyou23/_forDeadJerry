@@ -11,10 +11,19 @@ class YouTubeShowViewModel: ObservableObject {
         let venue: String
         let location: String
         let name: String
+<<<<<<< Updated upstream
         let urlString: String
 
         var youtubeURL: URL? {
             URL(string: urlString)
+=======
+-        let videoID: String
++        let urlString: String
+
+        var youtubeURL: URL? {
+-            URL(string: "https://www.youtube.com/embed/\(videoID)?playsinline=1")
++            URL(string: urlString)
+>>>>>>> Stashed changes
         }
     }
 
@@ -30,7 +39,7 @@ class YouTubeShowViewModel: ObservableObject {
     struct DownloadInfo: Codable {
         let video_id: String?
         let source: String?
-        let url: String?
++        let url: String?
     }
 
     @Published private(set) var shows: [YouTubeShow] = []
@@ -38,7 +47,11 @@ class YouTubeShowViewModel: ObservableObject {
     @Published private(set) var error: Error?
     @Published var currentShow: YouTubeShow?
     @Published var isPlaying = false
+<<<<<<< Updated upstream
     @Published var coordinator: WebViewCoordinator?
+=======
++    @Published var coordinator: WebViewCoordinator?
+>>>>>>> Stashed changes
 
     private init() {}
 
@@ -52,6 +65,7 @@ class YouTubeShowViewModel: ObservableObject {
             let data = try Data(contentsOf: url)
             let raw = try JSONDecoder().decode([ShowData].self, from: data)
             shows = raw.compactMap { item in
+<<<<<<< Updated upstream
                 guard let info = item.download_info?.first(where: { $0.source == "youtube" }),
                       let link = info.url else { return nil }
                 return YouTubeShow(id: item.id,
@@ -60,6 +74,18 @@ class YouTubeShowViewModel: ObservableObject {
                                    location: item.location,
                                    name: item.name.isEmpty ? "Jerry Garcia" : item.name,
                                    urlString: link)
+=======
+-                guard let vid = item.download_info?.first(where: { $0.source == "youtube" })?.video_id else { return nil }
+-                return YouTubeShow(id: item.id, date: item.date, venue: item.venue, location: item.location, name: item.name.isEmpty ? "Jerry Garcia" : item.name, videoID: vid)
++                guard let info = item.download_info?.first(where: { $0.source == "youtube" }),
++                      let link = info.url else { return nil }
++                return YouTubeShow(id: item.id,
++                                   date: item.date,
++                                   venue: item.venue,
++                                   location: item.location,
++                                   name: item.name.isEmpty ? "Jerry Garcia" : item.name,
++                                   urlString: link)
+>>>>>>> Stashed changes
             }
         } catch {
             self.error = error
@@ -69,6 +95,7 @@ class YouTubeShowViewModel: ObservableObject {
 
     func play(show: YouTubeShow) {
         currentShow = show
+<<<<<<< Updated upstream
         if let url = show.youtubeURL {
             if coordinator?.url != url {
                 coordinator = WebViewCoordinator(url: url)
@@ -76,6 +103,15 @@ class YouTubeShowViewModel: ObservableObject {
         } else {
             coordinator = nil
         }
+=======
++        if let url = show.youtubeURL {
++            if coordinator?.url != url {
++                coordinator = WebViewCoordinator(url: url)
++            }
++        } else {
++            coordinator = nil
++        }
+>>>>>>> Stashed changes
         isPlaying = true
         PlayerCoordinator.shared.setActivePlayer(.youtube)
     }
@@ -84,3 +120,9 @@ class YouTubeShowViewModel: ObservableObject {
         isPlaying = false
     }
 }
+<<<<<<< Updated upstream
+=======
+
+EOF
+)
+>>>>>>> Stashed changes
