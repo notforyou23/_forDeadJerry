@@ -4,6 +4,7 @@ import SwiftUI
 enum AppSection {
     case dead
     case jerry
+    case youtube
     case all // For combined views showing both Dead and Jerry content
 }
 
@@ -20,6 +21,8 @@ struct AppTheme {
             return Color(red: 0.4, green: 0.6, blue: 0.8) // Softer blue-purple
         case .dead:
             return Color(red: 0.8, green: 0.2, blue: 0.4) // Softer magenta
+        case .youtube:
+            return Color(red: 0.2, green: 0.8, blue: 0.6) // Teal accent for YouTube
         case .all:
             return Color.gray
         }
@@ -43,6 +46,12 @@ struct AppTheme {
                 Color(red: 0.6, green: 0.2, blue: 0.6).opacity(0.7),   // Purple
                 Color(red: 0.4, green: 0.2, blue: 0.8).opacity(0.7),   // Deep Blue
                 Color(red: 0.8, green: 0.2, blue: 0.4).opacity(0.7)    // Magenta
+            ])
+        case .youtube:
+            return Gradient(colors: [
+                Color(red: 0.2, green: 0.8, blue: 0.6).opacity(0.7),   // Teal
+                Color(red: 0.1, green: 0.6, blue: 0.5).opacity(0.7),   // Darker teal
+                Color(red: 0.2, green: 0.8, blue: 0.6).opacity(0.7)
             ])
         case .all:
             return Gradient(colors: [
