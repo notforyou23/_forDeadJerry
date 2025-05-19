@@ -51,6 +51,9 @@ class UnifiedAudioService: ObservableObject {
             return deadAudioAdapter
         case .jerry:
             return jerryAudioAdapter
+        case .youtube:
+            // YouTube playback currently handled outside of UnifiedAudioService
+            return nil
         case .none:
             return nil
         }
