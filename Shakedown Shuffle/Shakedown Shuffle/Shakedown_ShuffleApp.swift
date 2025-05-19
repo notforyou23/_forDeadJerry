@@ -12,7 +12,7 @@ struct Shakedown_ShuffleApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ZStack {
+            ZStack(alignment: .bottomTrailing) {
                 if isLoading {
                     SplashScreenView()
                 } else {
