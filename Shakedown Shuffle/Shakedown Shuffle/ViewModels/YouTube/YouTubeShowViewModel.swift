@@ -13,8 +13,42 @@ class YouTubeShowViewModel: ObservableObject {
         let name: String
         let urlString: String
 
+        /// Convert the stored YouTube link into an embeddable URL that auto plays
+        /// and starts unmuted. Falls back to the original URL if parsing fails.
         var youtubeURL: URL? {
-            URL(string: urlString)
+            if let id = Self.extractVideoID(from: urlString) {
+                var components = URLComponents()
+                components.scheme = "https"
+                components.host = "www.youtube.com"
+                components.path = "/embed/\(id)"
+                components.queryItems = [
+                    URLQueryItem(name: "playsinline", value: "1"),
+                    URLQueryItem(name: "autoplay", value: "1"),
+                    URLQueryItem(name: "mute", value: "0")
+                ]
+                return components.url
+            }
+            return URL(string: urlString)
+        }
+
+        /// Attempt to extract a YouTube video ID from a variety of URL formats.
+        private static func extractVideoID(from link: String) -> String? {
+            guard let url = URL(string: link) else { return nil }
+            let host = url.host ?? ""
+            if host.contains("youtu.be") {
+                return url.pathComponents.dropFirst().first.map(String.init)
+            }
+            if host.contains("youtube.com") {
+                let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                if let id = comps?.queryItems?.first(where: { $0.name == "v" })?.value {
+                    return id
+                }
+                let parts = url.pathComponents
+                if let idx = parts.firstIndex(of: "embed"), parts.count > idx + 1 {
+                    return parts[idx + 1]
+                }
+            }
+            return nil
         }
     }
 
@@ -69,13 +103,19 @@ class YouTubeShowViewModel: ObservableObject {
 
     func play(show: YouTubeShow) {
         currentShow = show
-        if let url = show.youtubeURL {
-            if coordinator?.url != url {
-                coordinator = WebViewCoordinator(url: url)
+        guard let url = show.youtubeURL else {
+            coordinator = nil
+            return
+        }
+
+        if let existing = coordinator {
+            if existing.url != url {
+                existing.setURL(url)
             }
         } else {
-            coordinator = nil
+            coordinator = WebViewCoordinator(url: url)
         }
+
         isPlaying = true
         PlayerCoordinator.shared.setActivePlayer(.youtube)
     }
