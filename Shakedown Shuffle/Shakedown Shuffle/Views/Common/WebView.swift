@@ -42,23 +42,24 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
             acceptCookies(webView: webView)
         }
         unmuteVideo(webView: webView)
-        checkForPlaybackError(webView: webView)
+        checkForPlaybackRestriction(webView: webView)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         isLoading = false
         hasError = true
+        attemptFallbackIfNeeded(webView: webView)
     }
     
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         isLoading = false
         hasError = true
+        attemptFallbackIfNeeded(webView: webView)
     }
     
     private func acceptCookies(webView: WKWebView) {
         let script = """
         (function() {
-            // Try to find and click cookie banner buttons
             const cookieButtons = document.querySelectorAll('button, a');
             for (let btn of cookieButtons) {
                 const text = btn.textContent || '';
@@ -69,7 +70,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
             }
         })();
         """
-        
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
 
@@ -86,20 +86,28 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
 
-    private func checkForPlaybackError(webView: WKWebView) {
+    private func checkForPlaybackRestriction(webView: WKWebView) {
+        guard !didAttemptFallback, let fallback = fallbackURL else { return }
         let script = """
         (function() {
             const text = document.body.innerText || '';
-            return text.includes('Watch on YouTube') || text.includes('confirm your age');
+            return text.includes('Watch on YouTube') || text.includes('Playback on other websites has been disabled');
         })();
         """
         webView.evaluateJavaScript(script) { result, _ in
-            if let flag = result as? Bool, flag, !self.didAttemptFallback, let fallback = self.fallbackURL {
+            if let blocked = result as? Bool, blocked {
                 self.didAttemptFallback = true
                 let request = URLRequest(url: fallback, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
                 webView.load(request)
             }
         }
+    }
+
+    private func attemptFallbackIfNeeded(webView: WKWebView) {
+        guard !didAttemptFallback, let fallback = fallbackURL else { return }
+        didAttemptFallback = true
+        let request = URLRequest(url: fallback, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
+        webView.load(request)
     }
 }
 
@@ -148,33 +156,27 @@ struct WebViewContainer: View {
     @State private var timeoutTimerActive = true
 
     init(url: URL, fallbackURL: URL? = nil, coordinator: WebViewCoordinator? = nil) {
-    self.url = url
-    self.fallbackURL = fallbackURL
-    if let coord = coordinator {
-        self._coordinator = StateObject(wrappedValue: coord)
-        // Always set URL and fallback explicitly in case one or both changed
-        coord.setURL(url, fallback: fallbackURL)
-    } else {
-        self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url, fallbackURL: fallbackURL))
-    }
-}
-
-    
-    // Function to open URL in Safari
-    private func openInSafari() {
-        if let url = URL(string: coordinator.url.absoluteString) {
-            UIApplication.shared.open(url)
+        self.url = url
+        self.fallbackURL = fallbackURL
+        if let coord = coordinator {
+            self._coordinator = StateObject(wrappedValue: coord)
+            coord.setURL(url, fallback: fallbackURL)
+        } else {
+            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url, fallbackURL: fallbackURL))
         }
+    }
+    
+    private func openInSafari() {
+        let target = coordinator.fallbackURL ?? coordinator.url
+        UIApplication.shared.open(target)
     }
     
     var body: some View {
         ZStack {
-            // WebView with no unnecessary updates
             WebView(coordinator: coordinator)
                 .ignoresSafeArea()
                 .disabled(coordinator.isLoading && !timeoutTimerActive)
             
-            // Loading overlay only shown during initial load and timeout hasn't expired
             if coordinator.isLoading && timeoutTimerActive {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
@@ -189,13 +191,10 @@ struct WebViewContainer: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack {
-                    // Open in Safari button
                     Button(action: openInSafari) {
                         Image(systemName: "safari")
                             .foregroundColor(.blue)
                     }
-                    
-                    // Done button
                     Button("Done") {
                         dismiss()
                     }
@@ -203,10 +202,9 @@ struct WebViewContainer: View {
             }
         }
         .onAppear {
-            // Force dismiss the loading overlay after a timeout to ensure interaction works
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                 timeoutTimerActive = false
             }
         }
     }
-} 
+}

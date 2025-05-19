@@ -10,10 +10,12 @@ struct YouTubePlayerView: View {
         ScrollView {
             VStack(spacing: 16) {
                 if let url = show.youtubeURL {
-                    WebViewContainer(url: url,
-                                     fallbackURL: show.watchURL,
-                                     coordinator: viewModel.coordinator)
-                        .frame(height: 300)
+                    WebViewContainer(
+                        url: url,
+                        fallbackURL: show.watchURL,
+                        coordinator: viewModel.coordinator
+                    )
+                    .frame(height: 300)
                 } else {
                     Text("Invalid video URL")
                 }
@@ -28,6 +30,7 @@ struct YouTubePlayerView: View {
 
                 HStack {
                     Spacer()
+
                     if let url = show.url, !url.isEmpty {
                         Button(action: { showingWebView = true }) {
                             Image(systemName: "link.circle")
@@ -47,6 +50,7 @@ struct YouTubePlayerView: View {
                             .font(.title2)
                     }
                     .padding(.horizontal)
+
                     Spacer()
                 }
 
@@ -54,10 +58,12 @@ struct YouTubePlayerView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Setlist")
                             .font(.headline)
+
                         ForEach(Array(show.setlists.enumerated()), id: \.offset) { index, set in
                             VStack(alignment: .leading) {
                                 Text("Set \(index + 1)")
                                     .font(.subheadline)
+
                                 ForEach(set, id: \.self) { song in
                                     Text("• \(song)")
                                         .font(.caption)
@@ -106,15 +112,17 @@ struct YouTubePlayerView: View {
 
 #Preview {
     NavigationStack {
-        let demo = YouTubeShowViewModel.YouTubeShow(id: "1",
-                                                   date: "1/1/2000",
-                                                   venue: "Venue",
-                                                   location: "City, ST",
-                                                   name: "Demo",
-                                                   urlString: "https://youtube.com/watch?v=dQw4w9WgXcQ",
-                                                   url: "https://example.com",
-                                                   setlists: [["Song A", "Song B"]],
-                                                   notes: "Demo notes")
+        let demo = YouTubeShowViewModel.YouTubeShow(
+            id: "1",
+            date: "1/1/2000",
+            venue: "Venue",
+            location: "City, ST",
+            name: "Demo",
+            urlString: "https://youtube.com/watch?v=dQw4w9WgXcQ",
+            url: "https://example.com",
+            setlists: [["Song A", "Song B"]],
+            notes: "Demo notes"
+        )
         YouTubePlayerView(show: demo)
     }
 }
