@@ -7,16 +7,22 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
     @Published var didFinishLoading = false
     @Published var hasError = false
     var url: URL
+    var fallbackURL: URL?
     var webView: WKWebView?
     private var hasAttemptedCookieAccept = false
-    
-    init(url: URL) {
+    private var didAttemptFallback = false
+
+    init(url: URL, fallbackURL: URL? = nil) {
         self.url = url
+        self.fallbackURL = fallbackURL
         super.init()
     }
 
-    func setURL(_ newURL: URL) {
+    func setURL(_ newURL: URL, fallback: URL? = nil) {
         url = newURL
+        if let fallback = fallback {
+            fallbackURL = fallback
+        }
         if let webView = webView {
             let request = URLRequest(url: newURL, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
             webView.load(request)
@@ -36,6 +42,7 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
             acceptCookies(webView: webView)
         }
         unmuteVideo(webView: webView)
+        checkForPlaybackError(webView: webView)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -78,6 +85,22 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
         """
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
+
+    private func checkForPlaybackError(webView: WKWebView) {
+        let script = """
+        (function() {
+            const text = document.body.innerText || '';
+            return text.includes('Watch on YouTube') || text.includes('confirm your age');
+        })();
+        """
+        webView.evaluateJavaScript(script) { result, _ in
+            if let flag = result as? Bool, flag, !self.didAttemptFallback, let fallback = self.fallbackURL {
+                self.didAttemptFallback = true
+                let request = URLRequest(url: fallback, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
+                webView.load(request)
+            }
+        }
+    }
 }
 
 struct WebView: UIViewRepresentable {
@@ -119,21 +142,23 @@ struct WebView: UIViewRepresentable {
 
 struct WebViewContainer: View {
     let url: URL
+    let fallbackURL: URL?
     @StateObject private var coordinator: WebViewCoordinator
     @Environment(\.dismiss) private var dismiss
     @State private var timeoutTimerActive = true
 
-    init(url: URL, coordinator: WebViewCoordinator? = nil) {
-        self.url = url
-        if let coord = coordinator {
-            self._coordinator = StateObject(wrappedValue: coord)
-            if coord.url != url {
-                coord.setURL(url)
-            }
-        } else {
-            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
-        }
+    init(url: URL, fallbackURL: URL? = nil, coordinator: WebViewCoordinator? = nil) {
+    self.url = url
+    self.fallbackURL = fallbackURL
+    if let coord = coordinator {
+        self._coordinator = StateObject(wrappedValue: coord)
+        // Always set URL and fallback explicitly in case one or both changed
+        coord.setURL(url, fallback: fallbackURL)
+    } else {
+        self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url, fallbackURL: fallbackURL))
     }
+}
+
     
     // Function to open URL in Safari
     private func openInSafari() {

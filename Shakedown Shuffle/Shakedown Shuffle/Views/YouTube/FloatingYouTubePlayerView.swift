@@ -21,7 +21,9 @@ struct FloatingYouTubePlayerView: View {
                 }
 
                 if let url = show.youtubeURL {
-                    WebViewContainer(url: url, coordinator: viewModel.coordinator)
+                    WebViewContainer(url: url,
+                                     fallbackURL: show.watchURL,
+                                     coordinator: viewModel.coordinator)
                         .frame(width: 200, height: 112)
                         .cornerRadius(8)
                         .onTapGesture { showFullPlayer = true }

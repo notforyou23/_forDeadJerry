@@ -10,7 +10,9 @@ struct YouTubePlayerView: View {
         ScrollView {
             VStack(spacing: 16) {
                 if let url = show.youtubeURL {
-                    WebViewContainer(url: url, coordinator: viewModel.coordinator)
+                    WebViewContainer(url: url,
+                                     fallbackURL: show.watchURL,
+                                     coordinator: viewModel.coordinator)
                         .frame(height: 300)
                 } else {
                     Text("Invalid video URL")
