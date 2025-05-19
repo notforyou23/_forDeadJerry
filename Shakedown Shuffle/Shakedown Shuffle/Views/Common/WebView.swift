@@ -127,7 +127,9 @@ struct WebViewContainer: View {
         self.url = url
         if let coord = coordinator {
             self._coordinator = StateObject(wrappedValue: coord)
-            coord.setURL(url)
+            if coord.url != url {
+                coord.setURL(url)
+            }
         } else {
             self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
         }

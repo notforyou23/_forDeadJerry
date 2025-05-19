@@ -6,8 +6,8 @@ struct FloatingYouTubePlayerView: View {
     @State private var showFullPlayer = false
 
     var body: some View {
-        // Show only when a video is actively playing
-        if let show = viewModel.currentShow, viewModel.isPlaying {
+        // Show only when a video is actively playing and the full player isn't visible
+        if let show = viewModel.currentShow, viewModel.isPlaying, !viewModel.isPlayerPresented {
             VStack(spacing: 0) {
                 HStack {
                     Spacer()
@@ -31,8 +31,11 @@ struct FloatingYouTubePlayerView: View {
             .cornerRadius(8)
             .shadow(radius: 5)
             .padding()
-            .sheet(isPresented: $showFullPlayer) {
+            .sheet(isPresented: $showFullPlayer, onDismiss: {
+                viewModel.dismissPlayer()
+            }) {
                 YouTubePlayerView(show: show)
+                    .onAppear { viewModel.presentPlayer() }
             }
         }
     }

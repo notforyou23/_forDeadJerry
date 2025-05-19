@@ -106,6 +106,7 @@ struct YouTubeShow: Identifiable, Codable {
     @Published var isPlaying = false
     @Published var coordinator: WebViewCoordinator?
     @Published private(set) var favoriteShows: [YouTubeShow] = []
+    @Published var isPlayerPresented = false
 
     private init() {
         loadFavorites()
@@ -160,6 +161,16 @@ struct YouTubeShow: Identifiable, Codable {
 
     func stopPlayback() {
         isPlaying = false
+        currentShow = nil
+        coordinator = nil
+    }
+
+    func presentPlayer() {
+        isPlayerPresented = true
+    }
+
+    func dismissPlayer() {
+        isPlayerPresented = false
     }
 
     private func loadFavorites() {
