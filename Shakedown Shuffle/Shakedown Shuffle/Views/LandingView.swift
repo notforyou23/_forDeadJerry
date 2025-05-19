@@ -4,11 +4,13 @@ struct LandingView: View {
     @StateObject private var showViewModel = ShowViewModel()
     @StateObject private var audioPlayer = AudioPlayerService.shared
     @StateObject private var jerryViewModel = JerryShowViewModel.shared
+    @StateObject private var youtubeViewModel = YouTubeShowViewModel.shared
     @StateObject private var playerCoordinator = PlayerCoordinator.shared
     @State private var isLoading = true
     @State private var error: Error?
     @State private var navigateToShow = false
     @State private var navigateToJerryShow = false
+    @State private var navigateToYouTubeShow = false
     @State private var selectedSection: AppSection = .dead // Default section for background styles
     
     // Create adapters for unified player controls
@@ -91,7 +93,13 @@ struct LandingView: View {
                                 VStack(spacing: 18) {
                                     // Now Playing Button (only show if something is playing)
                                     if playerCoordinator.hasActivePlayer() {
-                                        let activeSection = playerCoordinator.getActivePlayerDestination() == .jerry ? AppSection.jerry : AppSection.dead
+                                        let activeSection: AppSection
+                                        switch playerCoordinator.getActivePlayerDestination() {
+                                        case .dead: activeSection = .dead
+                                        case .jerry: activeSection = .jerry
+                                        case .youtube: activeSection = .youtube
+                                        case .none: activeSection = .dead
+                                        }
                                         
                                         Button(action: {
                                             // Navigate to appropriate player
@@ -141,6 +149,21 @@ struct LandingView: View {
                                     .onTapGesture {
                                         withAnimation(.easeInOut(duration: 0.5)) {
                                             selectedSection = .jerry
+                                        }
+                                    }
+
+                                    // YouTube Button
+                                    NavigationLink(destination: YouTubeLandingView()) {
+                                        enhancedButtonContent(
+                                            icon: "play.rectangle", 
+                                            text: "YouTube", 
+                                            section: .youtube
+                                        )
+                                    }
+                                    .buttonStyle(EnhancedButtonStyle(section: .youtube))
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                            selectedSection = .youtube
                                         }
                                     }
                                     
@@ -208,16 +231,22 @@ struct LandingView: View {
                     JerryPlayerView(show: currentShow)
                 }
             }
+            .navigationDestination(isPresented: $navigateToYouTubeShow) {
+                if let current = YouTubeShowViewModel.shared.currentShow {
+                    YouTubePlayerView(show: current)
+                }
+            }
         }
         .preferredColorScheme(.dark)
         .task {
             do {
-                // Load both Dead and Jerry show data in parallel
+                // Load Dead, Jerry, and YouTube data in parallel
                 async let deadData: Void = DatabaseManager.shared.loadData()
                 async let jerryData: Void = jerryViewModel.loadShows()
-                
-                // Wait for both to complete
-                _ = try await (deadData, jerryData)
+                async let ytData: Void = YouTubeShowViewModel.shared.loadShows()
+
+                // Wait for all to complete
+                _ = try await (deadData, jerryData, ytData)
                 isLoading = false
             } catch {
                 self.error = error
@@ -234,6 +263,8 @@ struct LandingView: View {
         case .jerry:
             // Always use the new improved player for the Now Playing button
             navigateToJerryShow = true
+        case .youtube:
+            navigateToYouTubeShow = true
         case .none:
             break // Do nothing
         }
