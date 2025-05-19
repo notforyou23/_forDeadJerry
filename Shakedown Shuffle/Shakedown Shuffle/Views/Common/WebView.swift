@@ -148,15 +148,17 @@ struct WebViewContainer: View {
     @State private var timeoutTimerActive = true
 
     init(url: URL, fallbackURL: URL? = nil, coordinator: WebViewCoordinator? = nil) {
-        self.url = url
-        self.fallbackURL = fallbackURL
-        if let coord = coordinator {
-            self._coordinator = StateObject(wrappedValue: coord)
-            coord.setURL(url, fallback: fallbackURL)
-        } else {
-            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url, fallbackURL: fallbackURL))
-        }
+    self.url = url
+    self.fallbackURL = fallbackURL
+    if let coord = coordinator {
+        self._coordinator = StateObject(wrappedValue: coord)
+        // Always set URL and fallback explicitly in case one or both changed
+        coord.setURL(url, fallback: fallbackURL)
+    } else {
+        self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url, fallbackURL: fallbackURL))
     }
+}
+
     
     // Function to open URL in Safari
     private func openInSafari() {
