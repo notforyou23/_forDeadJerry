@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import AVFoundation
 import MediaPlayer
+import OSLog
 
 @MainActor
 class JerryShowViewModel: ObservableObject {
@@ -62,16 +63,16 @@ class JerryShowViewModel: ObservableObject {
         error = nil
         
         do {
-            print("🎸 Loading Jerry shows...")
+            logger.info("🎸 Loading Jerry shows...")
             
             // Load both JSON files
-            print("🎸 Loading master jerry data...")
+            logger.info("🎸 Loading master jerry data...")
             let masterShows = try await loadMasterJerryData()
-            print("🎸 Loaded \(masterShows.count) shows from master data")
+            logger.info("🎸 Loaded \(masterShows.count) shows from master data")
             
-            print("🎸 Loading show files...")
+            logger.info("🎸 Loading show files...")
             let showFiles = try await loadShowFiles()
-            print("🎸 Loaded \(showFiles.count) show files")
+            logger.info("🎸 Loaded \(showFiles.count) show files")
             
             // Combine the data
             shows = masterShows.map { masterShow in
@@ -105,14 +106,14 @@ class JerryShowViewModel: ObservableObject {
             }
             
             let showsWithAudio = shows.filter { $0.audioFiles?.isEmpty == false }
-            print("🎸 Successfully combined data:")
-            print("  - Total shows: \(shows.count)")
-            print("  - Shows with audio: \(showsWithAudio.count)")
+            logger.info("🎸 Successfully combined data:")
+            logger.info("  - Total shows: \(shows.count)")
+            logger.info("  - Shows with audio: \(showsWithAudio.count)")
             
         } catch {
             self.error = error
-            print("❌ Error loading Jerry shows: \(error)")
-            print("❌ Error details: \(error.localizedDescription)")
+            logger.info("❌ Error loading Jerry shows: \(error)")
+            logger.info("❌ Error details: \(error.localizedDescription)")
         }
         
         isLoading = false
@@ -140,15 +141,15 @@ class JerryShowViewModel: ObservableObject {
             .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             
         guard let audioURL = URL(string: audioURLString) else {
-            print("❌ Failed to create URL: \(audioURLString)")
+            logger.info("❌ Failed to create URL: \(audioURLString)")
             throw URLError(.badURL)
         }
-        
-        print("🎸 Loading audio from: \(audioURL)")
-        print("🎸 Audio file name: \(audioFile.name)")
-        print("🎸 Show folder: \(currentShow.folder)")
+
+        logger.info("🎸 Loading audio from: \(audioURL)")
+        logger.debug("🎸 Audio file name: \(audioFile.name)")
+        logger.debug("🎸 Show folder: \(currentShow.folder)")
         if let trackNum = audioFile.extractedTrackNumber {
-            print("🎸 Track number: \(trackNum)")
+            logger.debug("🎸 Track number: \(trackNum)")
         }
         
         // Remove existing time observer and notification observer
@@ -164,7 +165,7 @@ class JerryShowViewModel: ObservableObject {
         
         // Check if we have a preloaded item
         if let preloadedItem = preloadedItems[index] {
-            print("Using preloaded item for track \(index)")
+            logger.debug("Using preloaded item for track \(index)")
             player = AVPlayer(playerItem: preloadedItem)
             preloadedItems.removeValue(forKey: index)
         } else {
@@ -180,7 +181,7 @@ class JerryShowViewModel: ObservableObject {
             ]
             
             if isLikelySingleLargeFile {
-                print("🎸 Detected large single file - optimizing for streaming")
+                logger.debug("🎸 Detected large single file - optimizing for streaming")
                 // For large files, enable HTTP live streaming and disable precise duration calculation
                 assetOptions["AVURLAssetPreferPreciseDurationAndTimingKey"] = false
                 assetOptions["AVURLAssetHTTPHeaderFieldsKey"] = ["Range": "bytes=0-500000"] // Just get the first part to start playing
@@ -242,7 +243,7 @@ class JerryShowViewModel: ObservableObject {
         do {
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            print("Failed to activate audio session: \(error)")
+            logger.info("Failed to activate audio session: \(error)")
         }
         
         // Don't auto-start playing or set isPlaying state
@@ -343,15 +344,15 @@ class JerryShowViewModel: ObservableObject {
             .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
             
         guard let audioURL = URL(string: audioURLString) else {
-            print("❌ Failed to create URL: \(audioURLString)")
+            logger.info("❌ Failed to create URL: \(audioURLString)")
             throw URLError(.badURL)
         }
-        
-        print("🎸 Loading audio from: \(audioURL)")
-        print("🎸 Audio file name: \(audioFile.name)")
-        print("🎸 Show folder: \(currentShow.folder)")
+
+        logger.info("🎸 Loading audio from: \(audioURL)")
+        logger.debug("🎸 Audio file name: \(audioFile.name)")
+        logger.debug("🎸 Show folder: \(currentShow.folder)")
         if let trackNum = audioFile.extractedTrackNumber {
-            print("🎸 Track number: \(trackNum)")
+            logger.debug("🎸 Track number: \(trackNum)")
         }
         
         // Remove existing time observer and notification observer
@@ -367,7 +368,7 @@ class JerryShowViewModel: ObservableObject {
         
         // Check if we have a preloaded item
         if let preloadedItem = preloadedItems[index] {
-            print("Using preloaded item for track \(index)")
+            logger.debug("Using preloaded item for track \(index)")
             player = AVPlayer(playerItem: preloadedItem)
             preloadedItems.removeValue(forKey: index)
         } else {
@@ -383,7 +384,7 @@ class JerryShowViewModel: ObservableObject {
             ]
             
             if isLikelySingleLargeFile {
-                print("🎸 Detected large single file - optimizing for streaming")
+                logger.debug("🎸 Detected large single file - optimizing for streaming")
                 // For large files, enable HTTP live streaming and disable precise duration calculation
                 assetOptions["AVURLAssetPreferPreciseDurationAndTimingKey"] = false
                 assetOptions["AVURLAssetHTTPHeaderFieldsKey"] = ["Range": "bytes=0-500000"] // Just get the first part to start playing
@@ -445,7 +446,7 @@ class JerryShowViewModel: ObservableObject {
         do {
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            print("Failed to activate audio session: \(error)")
+            logger.info("Failed to activate audio session: \(error)")
         }
         
         // Start playback with a smooth fade-in
@@ -525,7 +526,7 @@ class JerryShowViewModel: ObservableObject {
                     // Using the older style API for better compatibility
                     _ = try await asset.loadValues(forKeys: keys)
                 } catch {
-                    print("Preloading error for track \(nextIndex): \(error)")
+                    logger.debug("Preloading error for track \(nextIndex): \(error)")
                 }
             }
             
@@ -544,18 +545,18 @@ class JerryShowViewModel: ObservableObject {
                 preloadedItems[nextIndex] = item
             }
             
-            print("Preloaded track at index \(nextIndex)")
+            logger.debug("Preloaded track at index \(nextIndex)")
         }
     }
     
     @objc private func playerItemDidPlayToEndTime() {
-        print("Jerry player track ended, trying to play next track")
+        logger.debug("Jerry player track ended, trying to play next track")
         Task {
             // Check if there's a next track available
             guard let currentShow = currentShow,
                   let audioFiles = currentShow.sortedAudioFiles,
                   currentTrackIndex < audioFiles.count - 1 else {
-                print("No more tracks to play in this show")
+                logger.debug("No more tracks to play in this show")
                 // Mark show as complete if this was the last track
                 if let currentShow = currentShow {
                     markShowAsCompleted(currentShow)
@@ -564,7 +565,7 @@ class JerryShowViewModel: ObservableObject {
             }
             
             // Play the next track
-            print("Auto-advancing to next Jerry track")
+            logger.debug("Auto-advancing to next Jerry track")
             try? await playTrack(at: currentTrackIndex + 1)
         }
     }
@@ -609,9 +610,9 @@ class JerryShowViewModel: ObservableObject {
     
     // MARK: - Private Methods
     private func loadMasterJerryData() async throws -> [JerryShowData] {
-        print("🎸 Loading master jerry data from bundle...")
+        logger.info("🎸 Loading master jerry data from bundle...")
         guard let url = Bundle.main.url(forResource: "full_master_jerry", withExtension: "json") else {
-            print("❌ full_master_jerry.json not found in bundle")
+            logger.info("❌ full_master_jerry.json not found in bundle")
             throw NSError(domain: "JerryShowViewModel", code: -1, 
                          userInfo: [NSLocalizedDescriptionKey: "full_master_jerry.json not found in bundle"])
         }
@@ -621,9 +622,9 @@ class JerryShowViewModel: ObservableObject {
     }
     
     private func loadShowFiles() async throws -> [String: ShowFile] {
-        print("🎸 Loading show files from bundle...")
+        logger.info("🎸 Loading show files from bundle...")
         guard let url = Bundle.main.url(forResource: "show_files", withExtension: "json") else {
-            print("❌ show_files.json not found in bundle")
+            logger.info("❌ show_files.json not found in bundle")
             throw NSError(domain: "JerryShowViewModel", code: -1,
                          userInfo: [NSLocalizedDescriptionKey: "show_files.json not found in bundle"])
         }
@@ -710,7 +711,7 @@ class JerryShowViewModel: ObservableObject {
                 object: nil
             )
         } catch {
-            print("Failed to setup audio session:", error)
+            logger.info("Failed to setup audio session: \(error)")
         }
     }
     
@@ -819,25 +820,25 @@ class JerryShowViewModel: ObservableObject {
         if let recentData = UserDefaults.standard.data(forKey: recentShowsKey),
            let recentShows = try? JSONDecoder().decode([JerryShow].self, from: recentData) {
             self.recentShows = recentShows
-            print("📂 Loaded \(recentShows.count) recent Jerry shows")
+            logger.info("📂 Loaded \(recentShows.count) recent Jerry shows")
         }
         
         if let favoritesData = UserDefaults.standard.data(forKey: favoriteShowsKey),
            let favoriteShows = try? JSONDecoder().decode([JerryShow].self, from: favoritesData) {
             self.favoriteShows = favoriteShows
-            print("📂 Loaded \(favoriteShows.count) favorite Jerry shows")
+            logger.info("📂 Loaded \(favoriteShows.count) favorite Jerry shows")
         }
         
         if let completedData = UserDefaults.standard.data(forKey: completedShowsKey),
            let completedShows = try? JSONDecoder().decode(Set<String>.self, from: completedData) {
             self.completedShows = completedShows
-            print("📂 Loaded \(completedShows.count) completed Jerry shows")
+            logger.info("📂 Loaded \(completedShows.count) completed Jerry shows")
         }
         
         if let partialData = UserDefaults.standard.data(forKey: partialShowsKey),
            let partialShows = try? JSONDecoder().decode(Set<String>.self, from: partialData) {
             self.partialShows = partialShows
-            print("📂 Loaded \(partialShows.count) partial Jerry shows")
+            logger.info("📂 Loaded \(partialShows.count) partial Jerry shows")
         }
     }
     
@@ -906,7 +907,7 @@ class JerryShowViewModel: ObservableObject {
         completedShows.removeAll()
         partialShows.removeAll()
         saveHistory()
-        print("📂 Reset all Jerry history data")
+        logger.info("📂 Reset all Jerry history data")
     }
     
     deinit {

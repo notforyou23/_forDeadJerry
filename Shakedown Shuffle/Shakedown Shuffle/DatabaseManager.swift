@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 class DatabaseManager {
     static let shared = DatabaseManager()
@@ -9,38 +10,38 @@ class DatabaseManager {
     private init() {}
     
     func loadData() async throws {
-        print("Starting data load...")
+        logger.info("Starting data load...")
         
         // Load show categories
         if let categoriesURL = Bundle.main.url(forResource: "show_categories", withExtension: "json") {
-            print("Found show_categories.json in bundle")
+            logger.info("Found show_categories.json in bundle")
             let data = try Data(contentsOf: categoriesURL)
             showCategories = try ShowCategoriesModel(data: data)
-            print("Loaded show categories: \(showCategories?.categories.byYear.count ?? 0) years")
+            logger.info("Loaded show categories: \(showCategories?.categories.byYear.count ?? 0) years")
         } else {
             // Try loading from the project directory
             let projectPath = Bundle.main.bundlePath
             let categoriesPath = (projectPath as NSString).deletingLastPathComponent + "/show_categories.json"
-            print("Looking for show_categories.json at: \(categoriesPath)")
+            logger.info("Looking for show_categories.json at: \(categoriesPath)")
             let data = try Data(contentsOf: URL(fileURLWithPath: categoriesPath))
             showCategories = try ShowCategoriesModel(data: data)
-            print("Loaded show categories from project directory")
+            logger.info("Loaded show categories from project directory")
         }
         
         // Load enriched shows
         if let enrichedURL = Bundle.main.url(forResource: "enriched_shows", withExtension: "json") {
-            print("Found enriched_shows.json in bundle")
+            logger.info("Found enriched_shows.json in bundle")
             let data = try Data(contentsOf: enrichedURL)
             enrichedShows = try JSONDecoder().decode(EnrichedShowsData.self, from: data)
-            print("Loaded enriched shows: \(enrichedShows?.bestShows.count ?? 0) shows")
+            logger.info("Loaded enriched shows: \(enrichedShows?.bestShows.count ?? 0) shows")
         } else {
             // Try loading from the project directory
             let projectPath = Bundle.main.bundlePath
             let enrichedPath = (projectPath as NSString).deletingLastPathComponent + "/enriched_shows.json"
-            print("Looking for enriched_shows.json at: \(enrichedPath)")
+            logger.info("Looking for enriched_shows.json at: \(enrichedPath)")
             let data = try Data(contentsOf: URL(fileURLWithPath: enrichedPath))
             enrichedShows = try JSONDecoder().decode(EnrichedShowsData.self, from: data)
-            print("Loaded enriched shows from project directory")
+            logger.info("Loaded enriched shows from project directory")
         }
         
         guard enrichedShows != nil else {
