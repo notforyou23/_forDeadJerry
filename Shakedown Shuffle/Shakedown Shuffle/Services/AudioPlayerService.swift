@@ -5,6 +5,7 @@ import UIKit
 import Combine
 import ActivityKit
 import Network
+import OSLog
 
 @MainActor
 class AudioPlayerService: NSObject, ObservableObject {
@@ -131,7 +132,7 @@ class AudioPlayerService: NSObject, ObservableObject {
             )
             
         } catch {
-            print("Failed to set up audio session for AirPlay: \(error)")
+            logger.info("Failed to set up audio session for AirPlay: \(error)")
         }
     }
     
@@ -178,12 +179,12 @@ class AudioPlayerService: NSObject, ObservableObject {
         switch reason {
         case .newDeviceAvailable:
             // New output device (like headphones or bluetooth)
-            print("New audio route available")
+            logger.debug("New audio route available")
             // Update AirPlay status
             updateAirPlayStatus()
         case .oldDeviceUnavailable:
             // Output device was removed (like headphones unplugged)
-            print("Audio route removed")
+            logger.debug("Audio route removed")
             
             // Get previous route info
             guard let previousRoute = userInfo[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription else { return }
@@ -204,7 +205,7 @@ class AudioPlayerService: NSObject, ObservableObject {
             updateAirPlayStatus()
         case .categoryChange:
             // Audio session category changed
-            print("Audio session category changed")
+            logger.debug("Audio session category changed")
         default:
             break
         }
@@ -355,13 +356,13 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Don't preload if network is unavailable
         guard isNetworkAvailable else {
-            print("Network unavailable, skipping preloading")
+            logger.debug("Network unavailable, skipping preloading")
             return
         }
         
         // Skip preloading on cellular network if we have at least one track preloaded already
         if networkType == .cellular && !preloadedItems.isEmpty {
-            print("On cellular network with existing preloaded items, limiting further preloading")
+            logger.debug("On cellular network with existing preloaded items, limiting further preloading")
             return
         }
         
@@ -399,14 +400,14 @@ class AudioPlayerService: NSObject, ObservableObject {
                     do {
                         _ = try await asset.load(.isPlayable, .tracks, .duration)
                     } catch {
-                        print("Asset loading error: \(error)")
+                        logger.debug("Asset loading error: \(error)")
                     }
                 } else {
                     // Fallback for older iOS versions
                     do {
                         _ = try await asset.loadValues(forKeys: ["playable", "tracks", "duration"])
                     } catch {
-                        print("Preloading error for track \(nextIndex): \(error)")
+                        logger.debug("Preloading error for track \(nextIndex): \(error)")
                     }
                 }
             }
@@ -563,7 +564,7 @@ class AudioPlayerService: NSObject, ObservableObject {
                 // Only log the error once when trying to create
                 if error._domain != "com.apple.activitykit.error" || 
                    error._code != 1 { // Don't log unsupportedTarget
-                    print("Error starting live activity: \(error)")
+                    logger.debug("Error starting live activity: \(error)")
                 }
                 currentActivity = nil
             }
@@ -581,7 +582,7 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     @objc private func playerItemDidPlayToEndTime() {
-        print("playerItemDidPlayToEndTime called for track at index \(currentIndex)")
+        logger.debug("playerItemDidPlayToEndTime called for track at index \(currentIndex)")
         Task { @MainActor in
             if let currentShow = currentShow {
                 if currentIndex == playlist.count - 1 {
@@ -597,11 +598,11 @@ class AudioPlayerService: NSObject, ObservableObject {
                 currentTrack = trackList[currentIndex]
                 
                 if let preloadedItem = preloadedItems[currentIndex] {
-                    print("AudioPlayerService: Using preloaded track for auto-advance")
+                    logger.debug("AudioPlayerService: Using preloaded track for auto-advance")
                     player = AVPlayer(playerItem: preloadedItem)
                     preloadedItems.removeValue(forKey: currentIndex)
                 } else {
-                    print("AudioPlayerService: Loading next track URL: \(playlist[currentIndex])")
+                    logger.debug("AudioPlayerService: Loading next track URL: \(playlist[currentIndex])")
                     let asset = AVURLAsset(url: playlist[currentIndex], options: [
                         "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                         "AVURLAssetUsesProtocolCacheKey": true,
@@ -647,7 +648,7 @@ class AudioPlayerService: NSObject, ObservableObject {
             }
         } else {
             // If no identifier is available, we can't create the URLs
-            print("AudioPlayerService: Error - No show identifier available to create URLs")
+            logger.info("AudioPlayerService: Error - No show identifier available to create URLs")
             self.playlist = []
         }
         
@@ -658,9 +659,9 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     func loadTrack(at index: Int) {
-        print("Loading track at index \(index)")
+        logger.debug("Loading track at index \(index)")
         guard index >= 0 && index < playlist.count else {
-            print("AudioPlayerService: Invalid track index")
+            logger.debug("AudioPlayerService: Invalid track index")
             return
         }
         
@@ -670,11 +671,11 @@ class AudioPlayerService: NSObject, ObservableObject {
             self.currentTrack = trackList[index]
             
             if let preloadedItem = preloadedItems[index] {
-                print("AudioPlayerService: Using preloaded track")
+                logger.debug("AudioPlayerService: Using preloaded track")
                 player = AVPlayer(playerItem: preloadedItem)
                 preloadedItems.removeValue(forKey: index)
             } else {
-                print("AudioPlayerService: Loading track URL: \(playlist[index])")
+                logger.debug("AudioPlayerService: Loading track URL: \(playlist[index])")
                 let asset = AVURLAsset(url: playlist[index], options: [
                     "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                     "AVURLAssetUsesProtocolCacheKey": true,
@@ -697,9 +698,9 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     func playTrack(at index: Int) {
-        print("Playing track at index \(index)")
+        logger.debug("Playing track at index \(index)")
         guard index >= 0 && index < playlist.count else {
-            print("AudioPlayerService: Invalid track index")
+            logger.debug("AudioPlayerService: Invalid track index")
             return
         }
         
@@ -713,7 +714,7 @@ class AudioPlayerService: NSObject, ObservableObject {
             }
             
             if let preloadedItem = preloadedItems[index] {
-                print("AudioPlayerService: Using preloaded track")
+                logger.debug("AudioPlayerService: Using preloaded track")
                 player = AVPlayer(playerItem: preloadedItem)
                 preloadedItems.removeValue(forKey: index)
                 setupTimeObserver()
@@ -723,7 +724,7 @@ class AudioPlayerService: NSObject, ObservableObject {
                 // Preload next tracks
                 await preloadNextTracks()
             } else {
-                print("AudioPlayerService: Loading track URL: \(playlist[index])")
+                logger.debug("AudioPlayerService: Loading track URL: \(playlist[index])")
                 let asset = AVURLAsset(url: playlist[index], options: [
                     "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                     "AVURLAssetUsesProtocolCacheKey": true,
@@ -754,7 +755,7 @@ class AudioPlayerService: NSObject, ObservableObject {
         do {
             try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            print("Failed to activate audio session: \(error)")
+            logger.info("Failed to activate audio session: \(error)")
         }
         
         guard let player = player else { return }
@@ -781,12 +782,12 @@ class AudioPlayerService: NSObject, ObservableObject {
         
         // Update play count and track history
         if let currentTrack = currentTrack {
-            print("Playing track: \(currentTrack.title)")
+            logger.debug("Playing track: \(currentTrack.title)")
         }
     }
     
     func pause() {
-        print("AudioPlayerService: Pausing")
+        logger.debug("AudioPlayerService: Pausing")
         fadeOutAndPause()
     }
     
@@ -814,7 +815,7 @@ class AudioPlayerService: NSObject, ObservableObject {
                         do {
                             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
                         } catch {
-                            print("Failed to deactivate audio session: \(error)")
+                            logger.debug("Failed to deactivate audio session: \(error)")
                         }
                     }
                     
@@ -871,7 +872,7 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     private func handlePlaybackError() {
-        print("Handling playback error, retry count: \(retryCount)")
+        logger.debug("Handling playback error, retry count: \(retryCount)")
         guard retryCount < maxRetries else {
             error = NSError(domain: "com.randomdead", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "Failed to play track after multiple attempts"
@@ -905,7 +906,7 @@ class AudioPlayerService: NSObject, ObservableObject {
                 
                 endBackgroundTask()
             } catch {
-                print("Error during playback retry: \(error)")
+                logger.debug("Error during playback retry: \(error)")
                 endBackgroundTask()
             }
         }
@@ -936,14 +937,14 @@ class AudioPlayerService: NSObject, ObservableObject {
                 do {
                     _ = try await asset.load(.isPlayable, .tracks, .duration)
                 } catch {
-                    print("Asset loading error: \(error)")
+                    logger.debug("Asset loading error: \(error)")
                 }
             } else {
                 // Fallback for older iOS versions
                 do {
                     _ = try await asset.loadValues(forKeys: ["playable", "tracks", "duration"])
                 } catch {
-                    print("Asset loading error: \(error)")
+                    logger.debug("Asset loading error: \(error)")
                 }
             }
         }
@@ -1029,12 +1030,12 @@ class AudioPlayerService: NSObject, ObservableObject {
                 // Handle network changes during playback
                 if !isAvailable && self.isPlaying {
                     // Network lost during playback
-                    print("Network connection lost during playback")
+                    logger.debug("Network connection lost during playback")
                     // No need to pause - let the AVPlayer's buffer play out
                     // Just don't try to preload more tracks
                 } else if isAvailable && !self.isPlaying && self.error != nil {
                     // Network regained after an error
-                    print("Network regained, attempting to recover playback")
+                    logger.debug("Network regained, attempting to recover playback")
                     self.retryPlayback()
                 }
             }
@@ -1088,9 +1089,9 @@ class AudioPlayerService: NSObject, ObservableObject {
     
     // New method to load a track without automatically starting playback
     func loadTrackWithoutPlaying(at index: Int) {
-        print("Loading track at index \(index) without playing")
+        logger.debug("Loading track at index \(index) without playing")
         guard index >= 0 && index < playlist.count else {
-            print("AudioPlayerService: Invalid track index")
+            logger.debug("AudioPlayerService: Invalid track index")
             return
         }
         
@@ -1100,11 +1101,11 @@ class AudioPlayerService: NSObject, ObservableObject {
             self.currentTrack = trackList[index]
             
             if let preloadedItem = preloadedItems[index] {
-                print("AudioPlayerService: Using preloaded track")
+                logger.debug("AudioPlayerService: Using preloaded track")
                 player = AVPlayer(playerItem: preloadedItem)
                 preloadedItems.removeValue(forKey: index)
             } else {
-                print("AudioPlayerService: Loading track URL: \(playlist[index])")
+                logger.debug("AudioPlayerService: Loading track URL: \(playlist[index])")
                 let asset = AVURLAsset(url: playlist[index], options: [
                     "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                     "AVURLAssetUsesProtocolCacheKey": true,

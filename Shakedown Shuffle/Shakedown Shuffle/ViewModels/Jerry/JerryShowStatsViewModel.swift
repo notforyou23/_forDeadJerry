@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import OSLog
 
 @MainActor
 class JerryShowStatsViewModel: ObservableObject {
@@ -134,7 +135,7 @@ class JerryShowStatsViewModel: ObservableObject {
             
         } catch {
             self.error = error
-            print("Error loading statistics: \(error.localizedDescription)")
+            logger.info("Error loading statistics: \(error.localizedDescription)")
         }
         
         isLoading = false

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import OSLog
 
 @MainActor
 class ShowViewModel: ObservableObject {
@@ -21,28 +22,28 @@ class ShowViewModel: ObservableObject {
     // This allows creating instances for previews/testing while maintaining the singleton for actual usage
     
     func loadRandomShow() {
-        print("Loading random show...")
+        logger.info("Loading random show...")
         guard let show = DatabaseManager.shared.getRandomShow() else {
-            print("Failed to get random show from DatabaseManager")
+            logger.info("Failed to get random show from DatabaseManager")
             return
         }
-        print("Got random show: \(show.metadata.title)")
+        logger.info("Got random show: \(show.metadata.title)")
         setShow(show)
     }
     
     // Load a random show without auto-playing it
     func loadRandomShowWithoutPlaying() {
-        print("Loading random show without auto-play...")
+        logger.info("Loading random show without auto-play...")
         guard let show = DatabaseManager.shared.getRandomShow() else {
-            print("Failed to get random show from DatabaseManager")
+            logger.info("Failed to get random show from DatabaseManager")
             return
         }
-        print("Got random show: \(show.metadata.title)")
+        logger.info("Got random show: \(show.metadata.title)")
         setShowWithoutPlaying(show)
     }
     
     func loadTodaysShows() -> [EnrichedShow] {
-        print("Loading today's shows...")
+        logger.info("Loading today's shows...")
         let today = Date()
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM d"
@@ -52,7 +53,7 @@ class ShowViewModel: ObservableObject {
         let todayMMDD = formatter.string(from: today)
         
         guard let shows = DatabaseManager.shared.getAllShows() else {
-            print("Failed to get shows from DatabaseManager")
+            logger.info("Failed to get shows from DatabaseManager")
             return []
         }
         
@@ -82,22 +83,22 @@ class ShowViewModel: ObservableObject {
         currentShow = show
         currentDate = show.identifier
         isFavorited = historyManager.isFavorite(show)
-        print("Set show \(show.identifier), favorite status: \(isFavorited)")
+        logger.info("Set show \(show.identifier), favorite status: \(isFavorited)")
         
         Task {
             do {
-                print("Loading show audio...")
+                logger.info("Loading show audio...")
                 try await AudioPlayerService.shared.loadShow(identifier: show.identifier, tracks: show.tracks, show: show)
-                print("Show audio loaded successfully")
+                logger.info("Show audio loaded successfully")
                 AudioPlayerService.shared.play() // Start playing immediately
                 
                 // Add to history immediately when playback starts
                 historyManager.markShowAsPartial(show)
-                print("Show marked as partial and added to history")
+                logger.info("Show marked as partial and added to history")
                 
                 startPlayTimer() // Keep timer for other tracking purposes
             } catch {
-                print("Error loading show: \(error)")
+                logger.info("Error loading show: \(error)")
             }
         }
     }
@@ -109,19 +110,19 @@ class ShowViewModel: ObservableObject {
         currentShow = show
         currentDate = show.identifier
         isFavorited = historyManager.isFavorite(show)
-        print("Set show \(show.identifier) without auto-play, favorite status: \(isFavorited)")
+        logger.info("Set show \(show.identifier) without auto-play, favorite status: \(isFavorited)")
         
         Task {
             do {
-                print("Loading show audio...")
+                logger.info("Loading show audio...")
                 try await AudioPlayerService.shared.loadShow(identifier: show.identifier, tracks: show.tracks, show: show)
-                print("Show audio loaded successfully")
+                logger.info("Show audio loaded successfully")
                 // Note: Not starting playback automatically
                 
                 // Only add to history when actual playback starts, which will happen in the player view
-                print("Show loaded but not marked as partial yet")
+                logger.debug("Show loaded but not marked as partial yet")
             } catch {
-                print("Error loading show: \(error)")
+                logger.info("Error loading show: \(error)")
             }
         }
     }
@@ -132,34 +133,34 @@ class ShowViewModel: ObservableObject {
         currentShow = show
         currentDate = show.identifier
         isFavorited = historyManager.isFavorite(show)
-        print("Set show reference only for \(show.identifier), not affecting playback")
+        logger.info("Set show reference only for \(show.identifier), not affecting playback")
     }
     
     private func startPlayTimer() {
         stopPlayTimer()
-        print("🕒 Starting play timer for show tracking")
+        logger.debug("🕒 Starting play timer for show tracking")
         
         playTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else {
-                print("❌ Timer fired but self is nil")
+                logger.debug("❌ Timer fired but self is nil")
                 return
             }
             
             Task { @MainActor in
                 self.playTimeInSeconds += 1
-                print("🕒 Play time: \(self.playTimeInSeconds) seconds")
+                logger.debug("🕒 Play time: \(self.playTimeInSeconds) seconds")
                 
                 // Add to history after minimum play time
                 if self.playTimeInSeconds == self.minimumPlayTimeForHistory,
                    let show = self.currentShow {
-                    print("✅ Minimum play time (\(self.minimumPlayTimeForHistory) seconds) reached for show: \(show.identifier)")
+                    logger.info("✅ Minimum play time (\(self.minimumPlayTimeForHistory) seconds) reached for show: \(show.identifier)")
                     self.historyManager.addToHistory(show)
                     self.historyManager.markShowAsPartial(show)
-                    print("✅ Show marked as partial and added to history")
+                    logger.info("✅ Show marked as partial and added to history")
                 }
             }
         }
-        print("🕒 Play timer started successfully")
+        logger.debug("🕒 Play timer started successfully")
     }
     
     private nonisolated func stopPlayTimer() {
@@ -167,7 +168,7 @@ class ShowViewModel: ObservableObject {
             Task { @MainActor in
                 if let timer = self?.playTimer {
                     timer.invalidate()
-                    print("🛑 Play timer stopped")
+                    logger.debug("🛑 Play timer stopped")
                 }
                 self?.playTimer = nil
             }
