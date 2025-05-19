@@ -36,6 +36,21 @@ struct YouTubeShow: Identifiable, Codable {
             return URL(string: urlString)
         }
 
+        /// Standard watch page URL used as a fallback when embedding fails
+        var watchURL: URL? {
+            if let id = Self.extractVideoID(from: urlString) {
+                var components = URLComponents()
+                components.scheme = "https"
+                components.host = "www.youtube.com"
+                components.path = "/watch"
+                components.queryItems = [
+                    URLQueryItem(name: "v", value: id)
+                ]
+                return components.url
+            }
+            return URL(string: urlString)
+        }
+
         /// Attempt to extract a YouTube video ID from a variety of URL formats.
         private static func extractVideoID(from link: String) -> String? {
             // Trim whitespace/newlines and create URL
@@ -106,6 +121,7 @@ struct YouTubeShow: Identifiable, Codable {
     @Published var isPlaying = false
     @Published var coordinator: WebViewCoordinator?
     @Published private(set) var favoriteShows: [YouTubeShow] = []
+    @Published var isPlayerPresented = false
 
     private init() {
         loadFavorites()
@@ -148,10 +164,12 @@ struct YouTubeShow: Identifiable, Codable {
 
         if let existing = coordinator {
             if existing.url != url {
-                existing.setURL(url)
+                existing.setURL(url, fallback: show.watchURL)
+            } else {
+                existing.fallbackURL = show.watchURL
             }
         } else {
-            coordinator = WebViewCoordinator(url: url)
+            coordinator = WebViewCoordinator(url: url, fallbackURL: show.watchURL)
         }
 
         isPlaying = true
@@ -160,6 +178,16 @@ struct YouTubeShow: Identifiable, Codable {
 
     func stopPlayback() {
         isPlaying = false
+        currentShow = nil
+        coordinator = nil
+    }
+
+    func presentPlayer() {
+        isPlayerPresented = true
+    }
+
+    func dismissPlayer() {
+        isPlayerPresented = false
     }
 
     private func loadFavorites() {

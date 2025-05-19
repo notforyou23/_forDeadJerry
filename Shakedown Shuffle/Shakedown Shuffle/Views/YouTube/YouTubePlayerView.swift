@@ -10,7 +10,7 @@ struct YouTubePlayerView: View {
         ScrollView {
             VStack(spacing: 16) {
                 if let url = show.youtubeURL {
-                    WebViewContainer(url: url, coordinator: viewModel.coordinator)
+                    WebViewContainer(url: url, fallbackURL: show.watchURL, coordinator: viewModel.coordinator)
                         .frame(height: 300)
                 } else {
                     Text("Invalid video URL")
@@ -82,9 +82,10 @@ struct YouTubePlayerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.play(show: show)
+            viewModel.presentPlayer()
         }
         .onDisappear {
-            // Keep playback running when navigating away
+            viewModel.dismissPlayer()
         }
         .sheet(isPresented: $showingWebView) {
             if let url = show.url, let external = URL(string: url) {

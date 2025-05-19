@@ -7,16 +7,20 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
     @Published var didFinishLoading = false
     @Published var hasError = false
     var url: URL
+    var fallbackURL: URL?
     var webView: WKWebView?
     private var hasAttemptedCookieAccept = false
-    
-    init(url: URL) {
+    private var didAttemptFallback = false
+
+    init(url: URL, fallbackURL: URL? = nil) {
         self.url = url
+        self.fallbackURL = fallbackURL
         super.init()
     }
 
-    func setURL(_ newURL: URL) {
+    func setURL(_ newURL: URL, fallback: URL? = nil) {
         url = newURL
+        if let fb = fallback { fallbackURL = fb }
         if let webView = webView {
             let request = URLRequest(url: newURL, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
             webView.load(request)
@@ -36,16 +40,19 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
             acceptCookies(webView: webView)
         }
         unmuteVideo(webView: webView)
+        checkForPlaybackRestriction(webView: webView)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         isLoading = false
         hasError = true
+        attemptFallbackIfNeeded(webView: webView)
     }
     
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         isLoading = false
         hasError = true
+        attemptFallbackIfNeeded(webView: webView)
     }
     
     private func acceptCookies(webView: WKWebView) {
@@ -77,6 +84,30 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate, ObservableObject {
         })();
         """
         webView.evaluateJavaScript(script, completionHandler: nil)
+    }
+
+    private func checkForPlaybackRestriction(webView: WKWebView) {
+        guard !didAttemptFallback, let fallback = fallbackURL else { return }
+        let script = """
+        (function() {
+            const text = document.body.innerText || '';
+            return text.includes('Watch on YouTube') || text.includes('Playback on other websites has been disabled');
+        })();
+        """
+        webView.evaluateJavaScript(script) { result, _ in
+            if let blocked = result as? Bool, blocked {
+                self.didAttemptFallback = true
+                let request = URLRequest(url: fallback, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
+                webView.load(request)
+            }
+        }
+    }
+
+    private func attemptFallbackIfNeeded(webView: WKWebView) {
+        guard !didAttemptFallback, let fallback = fallbackURL else { return }
+        didAttemptFallback = true
+        let request = URLRequest(url: fallback, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
+        webView.load(request)
     }
 }
 
@@ -114,30 +145,34 @@ struct WebView: UIViewRepresentable {
             let request = URLRequest(url: coordinator.url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30.0)
             webView.load(request)
         }
+        if coordinator.fallbackURL != fallbackURL {
+            coordinator.fallbackURL = fallbackURL
+        }
     }
 }
 
 struct WebViewContainer: View {
     let url: URL
+    let fallbackURL: URL?
     @StateObject private var coordinator: WebViewCoordinator
     @Environment(\.dismiss) private var dismiss
     @State private var timeoutTimerActive = true
 
-    init(url: URL, coordinator: WebViewCoordinator? = nil) {
+    init(url: URL, fallbackURL: URL? = nil, coordinator: WebViewCoordinator? = nil) {
         self.url = url
+        self.fallbackURL = fallbackURL
         if let coord = coordinator {
             self._coordinator = StateObject(wrappedValue: coord)
-            coord.setURL(url)
+            coord.setURL(url, fallback: fallbackURL)
         } else {
-            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url))
+            self._coordinator = StateObject(wrappedValue: WebViewCoordinator(url: url, fallbackURL: fallbackURL))
         }
     }
     
     // Function to open URL in Safari
     private func openInSafari() {
-        if let url = URL(string: coordinator.url.absoluteString) {
-            UIApplication.shared.open(url)
-        }
+        let target = coordinator.fallbackURL ?? coordinator.url
+        UIApplication.shared.open(target)
     }
     
     var body: some View {
