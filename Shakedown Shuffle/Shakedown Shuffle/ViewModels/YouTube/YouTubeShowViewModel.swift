@@ -5,13 +5,18 @@ import Combine
 class YouTubeShowViewModel: ObservableObject {
     static let shared = YouTubeShowViewModel()
 
-    struct YouTubeShow: Identifiable, Codable {
+    private let favoriteShowsKey = "youtubeFavoriteShows"
+
+struct YouTubeShow: Identifiable, Codable {
         let id: String
         let date: String
         let venue: String
         let location: String
         let name: String
         let urlString: String
+        let url: String?
+        let setlists: [[String]]
+        let notes: String?
 
         /// Convert the stored YouTube link into an embeddable URL that auto plays
         /// and starts unmuted. Falls back to the original URL if parsing fails.
@@ -54,12 +59,16 @@ class YouTubeShowViewModel: ObservableObject {
         }
     }
 
+
     struct ShowData: Codable {
         let id: String
         let date: String
         let venue: String
         let location: String
         let name: String
+        let url: String?
+        let setlists: [[String]]
+        let notes: String?
         let download_info: [DownloadInfo]?
     }
 
@@ -75,8 +84,11 @@ class YouTubeShowViewModel: ObservableObject {
     @Published var currentShow: YouTubeShow?
     @Published var isPlaying = false
     @Published var coordinator: WebViewCoordinator?
+    @Published private(set) var favoriteShows: [YouTubeShow] = []
 
-    private init() {}
+    private init() {
+        loadFavorites()
+    }
 
     func loadShows() async {
         isLoading = true
@@ -95,7 +107,10 @@ class YouTubeShowViewModel: ObservableObject {
                                    venue: item.venue,
                                    location: item.location,
                                    name: item.name.isEmpty ? "Jerry Garcia" : item.name,
-                                   urlString: link)
+                                   urlString: link,
+                                   url: item.url,
+                                   setlists: item.setlists,
+                                   notes: item.notes)
             }
         } catch {
             self.error = error
@@ -125,4 +140,37 @@ class YouTubeShowViewModel: ObservableObject {
     func stopPlayback() {
         isPlaying = false
     }
+
+    private func loadFavorites() {
+        if let data = UserDefaults.standard.data(forKey: favoriteShowsKey),
+           let favorites = try? JSONDecoder().decode([YouTubeShow].self, from: data) {
+            self.favoriteShows = favorites
+        }
+    }
+
+    private func saveFavorites() {
+        if let data = try? JSONEncoder().encode(favoriteShows) {
+            UserDefaults.standard.set(data, forKey: favoriteShowsKey)
+        }
+    }
+
+    func toggleFavorite(_ show: YouTubeShow) {
+        if let index = favoriteShows.firstIndex(where: { $0.id == show.id }) {
+            favoriteShows.remove(at: index)
+        } else {
+            favoriteShows.append(show)
+        }
+        saveFavorites()
+    }
+}
+
+// Conformance to DetailableShow for use with UnifiedShowDetailView
+extension YouTubeShowViewModel.YouTubeShow: DetailableShow {
+    var detailTitle: String { name }
+    var locationString: String { location }
+    var sectionType: AppSection { .youtube }
+    var sourceInfo: String? { nil }
+    var rating: Double? { nil }
+    var showNotes: String? { notes }
+    var showSetlists: [[String]]? { setlists }
 }
