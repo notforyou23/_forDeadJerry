@@ -21,6 +21,20 @@ struct LandingView: View {
     private var jerryPlaybackAdapter: JerryPlaybackAdapter {
         JerryPlaybackAdapter(viewModel: jerryViewModel)
     }
+
+    // Determine the section for the currently active player
+    private var activePlayerSection: AppSection {
+        switch playerCoordinator.getActivePlayerDestination() {
+        case .dead:
+            return .dead
+        case .jerry:
+            return .jerry
+        case .youtube:
+            return .youtube
+        case .none:
+            return .dead
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -93,13 +107,7 @@ struct LandingView: View {
                                 VStack(spacing: 18) {
                                     // Now Playing Button (only show if something is playing)
                                     if playerCoordinator.hasActivePlayer() {
-                                        let activeSection: AppSection
-                                        switch playerCoordinator.getActivePlayerDestination() {
-                                        case .dead: activeSection = .dead
-                                        case .jerry: activeSection = .jerry
-                                        case .youtube: activeSection = .youtube
-                                        case .none: activeSection = .dead
-                                        }
+                                        let activeSection = activePlayerSection
                                         
                                         Button(action: {
                                             // Navigate to appropriate player

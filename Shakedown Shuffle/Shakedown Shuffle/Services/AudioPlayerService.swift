@@ -582,50 +582,50 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     @objc private func playerItemDidPlayToEndTime() {
-        logger.debug("playerItemDidPlayToEndTime called for track at index \(currentIndex)")
+        logger.debug("playerItemDidPlayToEndTime called for track at index \(self.currentIndex)")
         Task { @MainActor in
-            if let currentShow = currentShow {
-                if currentIndex == playlist.count - 1 {
+            if let currentShow = self.currentShow {
+                if self.currentIndex == self.playlist.count - 1 {
                     // Last track finished
-                    historyManager.markShowAsCompleted(currentShow)
+                    self.historyManager.markShowAsCompleted(currentShow)
                     return // Don't try to play next track if we're at the end
                 }
             }
-            
-            if currentIndex < playlist.count - 1 {
+
+            if self.currentIndex < self.playlist.count - 1 {
                 // Move to next track
-                currentIndex += 1
-                currentTrack = trackList[currentIndex]
-                
-                if let preloadedItem = preloadedItems[currentIndex] {
+                self.currentIndex += 1
+                self.currentTrack = self.trackList[self.currentIndex]
+
+                if let preloadedItem = self.preloadedItems[self.currentIndex] {
                     logger.debug("AudioPlayerService: Using preloaded track for auto-advance")
-                    player = AVPlayer(playerItem: preloadedItem)
-                    preloadedItems.removeValue(forKey: currentIndex)
+                    self.player = AVPlayer(playerItem: preloadedItem)
+                    self.preloadedItems.removeValue(forKey: self.currentIndex)
                 } else {
-                    logger.debug("AudioPlayerService: Loading next track URL: \(playlist[currentIndex])")
-                    let asset = AVURLAsset(url: playlist[currentIndex], options: [
+                    logger.debug("AudioPlayerService: Loading next track URL: \(self.playlist[self.currentIndex])")
+                    let asset = AVURLAsset(url: self.playlist[self.currentIndex], options: [
                         "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                         "AVURLAssetUsesProtocolCacheKey": true,
                         "AVURLAssetPreferPreciseDurationAndTimingKey": false
                     ])
-                    
-                    playerItem = AVPlayerItem(asset: asset)
-                    player = AVPlayer(playerItem: playerItem)
+
+                    self.playerItem = AVPlayerItem(asset: asset)
+                    self.player = AVPlayer(playerItem: self.playerItem)
                 }
-                
-                player?.automaticallyWaitsToMinimizeStalling = true
-                setupTimeObserver()
-                setupPlayerObservers()
-                play()
-                
+
+                self.player?.automaticallyWaitsToMinimizeStalling = true
+                self.setupTimeObserver()
+                self.setupPlayerObservers()
+                self.play()
+
                 // Preload next tracks in background
                 Task.detached(priority: .background) {
                     await self.preloadNextTracks()
                 }
-                
+
                 // Mark show as partial when advancing tracks
-                if let currentShow = currentShow {
-                    historyManager.markShowAsPartial(currentShow)
+                if let currentShow = self.currentShow {
+                    self.historyManager.markShowAsPartial(currentShow)
                 }
             }
         }
@@ -666,34 +666,34 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
         
         Task { @MainActor in
-            isLoading = true
+            self.isLoading = true
             self.currentIndex = index
-            self.currentTrack = trackList[index]
+            self.currentTrack = self.trackList[index]
             
-            if let preloadedItem = preloadedItems[index] {
+            if let preloadedItem = self.preloadedItems[index] {
                 logger.debug("AudioPlayerService: Using preloaded track")
-                player = AVPlayer(playerItem: preloadedItem)
-                preloadedItems.removeValue(forKey: index)
+                self.player = AVPlayer(playerItem: preloadedItem)
+                self.preloadedItems.removeValue(forKey: index)
             } else {
-                logger.debug("AudioPlayerService: Loading track URL: \(playlist[index])")
-                let asset = AVURLAsset(url: playlist[index], options: [
+                logger.debug("AudioPlayerService: Loading track URL: \(self.playlist[index])")
+                let asset = AVURLAsset(url: self.playlist[index], options: [
                     "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                     "AVURLAssetUsesProtocolCacheKey": true,
                     "AVURLAssetPreferPreciseDurationAndTimingKey": false
                 ])
-                
-                playerItem = AVPlayerItem(asset: asset)
-                player = AVPlayer(playerItem: playerItem)
-                player?.automaticallyWaitsToMinimizeStalling = true
+
+                self.playerItem = AVPlayerItem(asset: asset)
+                self.player = AVPlayer(playerItem: self.playerItem)
+                self.player?.automaticallyWaitsToMinimizeStalling = true
             }
-            
-            setupTimeObserver()
-            setupPlayerObservers()
-            
+
+            self.setupTimeObserver()
+            self.setupPlayerObservers()
+
             // Always start loading the next tracks
-            await preloadNextTracks()
-            
-            isLoading = false
+            await self.preloadNextTracks()
+
+            self.isLoading = false
         }
     }
     
@@ -705,42 +705,42 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
         
         Task { @MainActor in
-            isLoading = true
+            self.isLoading = true
             self.currentIndex = index
-            self.currentTrack = trackList[index]
+            self.currentTrack = self.trackList[index]
             
-            if let currentShow = currentShow {
-                historyManager.markShowAsPartial(currentShow)
+            if let currentShow = self.currentShow {
+                self.historyManager.markShowAsPartial(currentShow)
             }
             
-            if let preloadedItem = preloadedItems[index] {
+            if let preloadedItem = self.preloadedItems[index] {
                 logger.debug("AudioPlayerService: Using preloaded track")
-                player = AVPlayer(playerItem: preloadedItem)
-                preloadedItems.removeValue(forKey: index)
-                setupTimeObserver()
-                setupPlayerObservers()
-                play()
-                
+                self.player = AVPlayer(playerItem: preloadedItem)
+                self.preloadedItems.removeValue(forKey: index)
+                self.setupTimeObserver()
+                self.setupPlayerObservers()
+                self.play()
+
                 // Preload next tracks
-                await preloadNextTracks()
+                await self.preloadNextTracks()
             } else {
-                logger.debug("AudioPlayerService: Loading track URL: \(playlist[index])")
-                let asset = AVURLAsset(url: playlist[index], options: [
+                logger.debug("AudioPlayerService: Loading track URL: \(self.playlist[index])")
+                let asset = AVURLAsset(url: self.playlist[index], options: [
                     "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                     "AVURLAssetUsesProtocolCacheKey": true,
                     "AVURLAssetPreferPreciseDurationAndTimingKey": false
                 ])
-                
-                playerItem = AVPlayerItem(asset: asset)
-                player = AVPlayer(playerItem: playerItem)
-                player?.automaticallyWaitsToMinimizeStalling = true
-                setupTimeObserver()
-                setupPlayerObservers()
-                play()
-                
-                await preloadNextTracks()
+
+                self.playerItem = AVPlayerItem(asset: asset)
+                self.player = AVPlayer(playerItem: self.playerItem)
+                self.player?.automaticallyWaitsToMinimizeStalling = true
+                self.setupTimeObserver()
+                self.setupPlayerObservers()
+                self.play()
+
+                await self.preloadNextTracks()
             }
-            isLoading = false
+            self.isLoading = false
         }
     }
     
@@ -872,22 +872,22 @@ class AudioPlayerService: NSObject, ObservableObject {
     }
     
     private func handlePlaybackError() {
-        logger.debug("Handling playback error, retry count: \(retryCount)")
-        guard retryCount < maxRetries else {
-            error = NSError(domain: "com.randomdead", code: -1, userInfo: [
+        logger.debug("Handling playback error, retry count: \(self.retryCount)")
+        guard self.retryCount < self.maxRetries else {
+            self.error = NSError(domain: "com.randomdead", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "Failed to play track after multiple attempts"
             ])
             return
         }
-        
-        retryCount += 1
-        guard currentIndex < playlist.count else { return }
-        
+
+        self.retryCount += 1
+        guard self.currentIndex < self.playlist.count else { return }
+
         beginBackgroundTask()
-        
-        let currentURL = playlist[currentIndex]
-        let retryDelay = UInt64(retryCount) * 1_000_000_000 // Exponential backoff could be considered
-        
+
+        let currentURL = self.playlist[self.currentIndex]
+        let retryDelay = UInt64(self.retryCount) * 1_000_000_000 // Exponential backoff could be considered
+
         Task { @MainActor in
             do {
                 try await Task.sleep(nanoseconds: retryDelay)
@@ -896,18 +896,18 @@ class AudioPlayerService: NSObject, ObservableObject {
                     "AVURLAssetUsesProtocolCacheKey": true,
                     "AVURLAssetPreferPreciseDurationAndTimingKey": false
                 ])
-                
-                playerItem = AVPlayerItem(asset: asset)
-                player = AVPlayer(playerItem: playerItem)
-                player?.automaticallyWaitsToMinimizeStalling = true
-                setupTimeObserver()
-                setupPlayerObservers()
-                play()
-                
-                endBackgroundTask()
+
+                self.playerItem = AVPlayerItem(asset: asset)
+                self.player = AVPlayer(playerItem: self.playerItem)
+                self.player?.automaticallyWaitsToMinimizeStalling = true
+                self.setupTimeObserver()
+                self.setupPlayerObservers()
+                self.play()
+
+                self.endBackgroundTask()
             } catch {
                 logger.debug("Error during playback retry: \(error)")
-                endBackgroundTask()
+                self.endBackgroundTask()
             }
         }
     }
@@ -1096,38 +1096,38 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
         
         Task { @MainActor in
-            isLoading = true
+            self.isLoading = true
             self.currentIndex = index
-            self.currentTrack = trackList[index]
+            self.currentTrack = self.trackList[index]
             
-            if let preloadedItem = preloadedItems[index] {
+            if let preloadedItem = self.preloadedItems[index] {
                 logger.debug("AudioPlayerService: Using preloaded track")
-                player = AVPlayer(playerItem: preloadedItem)
-                preloadedItems.removeValue(forKey: index)
+                self.player = AVPlayer(playerItem: preloadedItem)
+                self.preloadedItems.removeValue(forKey: index)
             } else {
-                logger.debug("AudioPlayerService: Loading track URL: \(playlist[index])")
-                let asset = AVURLAsset(url: playlist[index], options: [
+                logger.debug("AudioPlayerService: Loading track URL: \(self.playlist[index])")
+                let asset = AVURLAsset(url: self.playlist[index], options: [
                     "AVURLAssetHTTPHeaderFieldsKey": ["Range": "bytes=0-"],
                     "AVURLAssetUsesProtocolCacheKey": true,
                     "AVURLAssetPreferPreciseDurationAndTimingKey": false
                 ])
-                
-                playerItem = AVPlayerItem(asset: asset)
-                player = AVPlayer(playerItem: playerItem)
-                player?.automaticallyWaitsToMinimizeStalling = true
+
+                self.playerItem = AVPlayerItem(asset: asset)
+                self.player = AVPlayer(playerItem: self.playerItem)
+                self.player?.automaticallyWaitsToMinimizeStalling = true
             }
-            
-            setupTimeObserver()
-            setupPlayerObservers()
+
+            self.setupTimeObserver()
+            self.setupPlayerObservers()
             
             // Ensure the player is paused
-            player?.pause()
-            isPlaying = false
-            
+            self.player?.pause()
+            self.isPlaying = false
+
             // Preload next tracks in background
-            await preloadNextTracks()
-            
-            isLoading = false
+            await self.preloadNextTracks()
+
+            self.isLoading = false
         }
     }
 } 
