@@ -5,6 +5,7 @@ import Combine
 enum PlayerDestination {
     case dead
     case jerry
+    case youtube
     case none
 }
 
@@ -18,6 +19,7 @@ enum PlayerDestination {
     // Private properties to store player references
     private var deadPlayer: AudioPlayerService?
     private var jerryPlayer: JerryShowViewModel?
+    private var youtubePlayer: YouTubeShowViewModel?
     
     // Subscriptions to track player state
     private var cancellables = Set<AnyCancellable>()
@@ -26,6 +28,7 @@ enum PlayerDestination {
     private init() {
         deadPlayer = AudioPlayerService.shared
         jerryPlayer = JerryShowViewModel.shared
+        youtubePlayer = YouTubeShowViewModel.shared
         
         // Observe Dead player state
         deadPlayer?.objectWillChange
@@ -36,6 +39,13 @@ enum PlayerDestination {
         
         // Observe Jerry player state
         jerryPlayer?.objectWillChange
+            .sink { [weak self] _ in
+                self?.updateActivePlayer()
+            }
+            .store(in: &cancellables)
+
+        // Observe YouTube player state
+        youtubePlayer?.objectWillChange
             .sink { [weak self] _ in
                 self?.updateActivePlayer()
             }
@@ -59,16 +69,28 @@ enum PlayerDestination {
             // If switching to Dead, pause Jerry
             if activeDestination == .jerry {
                 pauseJerryPlayer()
+            } else if activeDestination == .youtube {
+                pauseYouTubePlayer()
             }
             activeDestination = .dead
-            
+
         case .jerry:
             // If switching to Jerry, pause Dead
             if activeDestination == .dead {
                 pauseDeadPlayer()
+            } else if activeDestination == .youtube {
+                pauseYouTubePlayer()
             }
             activeDestination = .jerry
-            
+
+        case .youtube:
+            if activeDestination == .dead {
+                pauseDeadPlayer()
+            } else if activeDestination == .jerry {
+                pauseJerryPlayer()
+            }
+            activeDestination = .youtube
+
         case .none:
             activeDestination = .none
         }
@@ -81,6 +103,8 @@ enum PlayerDestination {
             pauseDeadPlayer()
         case .jerry:
             pauseJerryPlayer()
+        case .youtube:
+            pauseYouTubePlayer()
         case .none:
             break
         }
@@ -97,29 +121,43 @@ enum PlayerDestination {
             jerryPlayer?.togglePlayPause()
         }
     }
+
+    private func pauseYouTubePlayer() {
+        youtubePlayer?.stopPlayback()
+    }
     
     // Update the active player based on playback state
     private func updateActivePlayer() {
         let isDeadPlaying = deadPlayer?.isPlaying ?? false
         let isJerryPlaying = jerryPlayer?.isPlaying ?? false
+        let isYouTubePlaying = youtubePlayer?.isPlaying ?? false
         
-        if isDeadPlaying && isJerryPlaying {
+        if [isDeadPlaying, isJerryPlaying, isYouTubePlaying].filter({ $0 }).count > 1 {
             // Both are playing - this shouldn't happen, but prioritize the most recently activated one
             if activeDestination == .dead {
                 pauseJerryPlayer()
-            } else {
+                pauseYouTubePlayer()
+            } else if activeDestination == .jerry {
                 pauseDeadPlayer()
+                pauseYouTubePlayer()
+            } else if activeDestination == .youtube {
+                pauseDeadPlayer()
+                pauseJerryPlayer()
             }
         } else if isDeadPlaying {
             activeDestination = .dead
         } else if isJerryPlaying {
             activeDestination = .jerry
+        } else if isYouTubePlaying {
+            activeDestination = .youtube
         } else if !isDeadPlaying && !isJerryPlaying && deadPlayer?.currentTrack != nil {
             // Keep Dead as active player even when paused if there's a track loaded
             activeDestination = .dead
         } else if !isDeadPlaying && !isJerryPlaying && jerryPlayer?.currentShow != nil {
             // Keep Jerry as active player even when paused if there's a show loaded
             activeDestination = .jerry
+        } else if !isYouTubePlaying && youtubePlayer?.currentShow != nil {
+            activeDestination = .youtube
         } else {
             // No active player
             activeDestination = .none
