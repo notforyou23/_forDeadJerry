@@ -38,23 +38,44 @@ struct YouTubeShow: Identifiable, Codable {
 
         /// Attempt to extract a YouTube video ID from a variety of URL formats.
         private static func extractVideoID(from link: String) -> String? {
-            guard let url = URL(string: link) else { return nil }
+            // Trim whitespace/newlines and create URL
+            let trimmed = link.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let url = URL(string: trimmed) else { return nil }
+
             let host = url.host ?? ""
+
+            // https://youtu.be/<id>
             if host.contains("youtu.be") {
-                // pathComponents is already an array of Strings, so we can
-                // simply return the first component after the leading slash.
                 return url.pathComponents.dropFirst().first
             }
-            if host.contains("youtube.com") {
-                let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
-                if let id = comps?.queryItems?.first(where: { $0.name == "v" })?.value {
+
+            // Variations like youtube.com, m.youtube.com, youtube-nocookie.com
+            if host.contains("youtube") {
+                let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+
+                // Standard watch URL: https://youtube.com/watch?v=<id>
+                if let id = components?.queryItems?.first(where: { $0.name == "v" })?.value {
                     return id
                 }
+
                 let parts = url.pathComponents
+
+                // /embed/<id>
                 if let idx = parts.firstIndex(of: "embed"), parts.count > idx + 1 {
                     return parts[idx + 1]
                 }
+
+                // /shorts/<id>, /live/<id>
+                if let idx = parts.firstIndex(where: { $0 == "shorts" || $0 == "live" }), parts.count > idx + 1 {
+                    return parts[idx + 1]
+                }
+
+                // /v/<id>
+                if parts.count > 2 && parts[1] == "v" {
+                    return parts[2]
+                }
             }
+
             return nil
         }
     }

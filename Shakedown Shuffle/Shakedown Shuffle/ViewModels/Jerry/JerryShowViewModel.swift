@@ -32,7 +32,7 @@ class JerryShowViewModel: ObservableObject {
     private var player: AVPlayer?
     private var timeObserver: Any?
     private var audioSession: AVAudioSession { .sharedInstance() }
-    private let baseServerURL = "https://randomdead.com"
+    private let baseServerURL = URL(string: "https://randomdead.com")!
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var preloadedItems: [Int: AVPlayerItem] = [:]
     private let preloadLimit = 2  // Number of tracks to preload ahead
@@ -137,13 +137,12 @@ class JerryShowViewModel: ObservableObject {
         currentTrackIndex = index
         
         // Construct URL using server path for audio only
-        let audioURLString = "\(baseServerURL)/recordings/Jerry/Jerry Garcia Shows/\(currentShow.folder)/\(audioFile.name)"
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            
-        guard let audioURL = URL(string: audioURLString) else {
-            logger.info("❌ Failed to create URL: \(audioURLString)")
-            throw URLError(.badURL)
-        }
+        let audioURL = baseServerURL
+            .appendingPathComponent("recordings")
+            .appendingPathComponent("Jerry")
+            .appendingPathComponent("Jerry Garcia Shows")
+            .appendingPathComponent(currentShow.folder)
+            .appendingPathComponent(audioFile.name)
 
         logger.info("🎸 Loading audio from: \(audioURL)")
         logger.debug("🎸 Audio file name: \(audioFile.name)")
@@ -340,13 +339,12 @@ class JerryShowViewModel: ObservableObject {
         currentTrackIndex = index
         
         // Construct URL using server path for audio only
-        let audioURLString = "\(baseServerURL)/recordings/Jerry/Jerry Garcia Shows/\(currentShow.folder)/\(audioFile.name)"
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            
-        guard let audioURL = URL(string: audioURLString) else {
-            logger.info("❌ Failed to create URL: \(audioURLString)")
-            throw URLError(.badURL)
-        }
+        let audioURL = baseServerURL
+            .appendingPathComponent("recordings")
+            .appendingPathComponent("Jerry")
+            .appendingPathComponent("Jerry Garcia Shows")
+            .appendingPathComponent(currentShow.folder)
+            .appendingPathComponent(audioFile.name)
 
         logger.info("🎸 Loading audio from: \(audioURL)")
         logger.debug("🎸 Audio file name: \(audioFile.name)")
@@ -490,10 +488,12 @@ class JerryShowViewModel: ObservableObject {
             
             // Construct URL for the next track
             let audioFile = audioFiles[nextIndex]
-            let audioURLString = "\(baseServerURL)/recordings/Jerry/Jerry Garcia Shows/\(currentShow.folder)/\(audioFile.name)"
-                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                
-            guard let audioURL = URL(string: audioURLString) else { continue }
+            let audioURL = baseServerURL
+                .appendingPathComponent("recordings")
+                .appendingPathComponent("Jerry")
+                .appendingPathComponent("Jerry Garcia Shows")
+                .appendingPathComponent(currentShow.folder)
+                .appendingPathComponent(audioFile.name)
             
             // Determine if it's a large single file
             let isLikelySingleLargeFile = audioFile.name.contains(".mp3") && 
