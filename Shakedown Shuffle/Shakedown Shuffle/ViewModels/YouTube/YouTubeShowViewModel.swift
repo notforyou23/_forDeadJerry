@@ -36,7 +36,9 @@ class YouTubeShowViewModel: ObservableObject {
             guard let url = URL(string: link) else { return nil }
             let host = url.host ?? ""
             if host.contains("youtu.be") {
-                return url.pathComponents.dropFirst().first.map(String.init)
+                // pathComponents is already an array of Strings, so we can
+                // simply return the first component after the leading slash.
+                return url.pathComponents.dropFirst().first
             }
             if host.contains("youtube.com") {
                 let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
